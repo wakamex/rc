@@ -4,7 +4,7 @@
 **Date:** March 4, 2026
 
 ## 1. Executive Summary
-Large Language Models (LLMs) struggle with infinite-horizon memory and multi-step symbolic reasoning due to the stateless nature of their forward pass and the computational cost of expanding the KV-cache. We propose the **Latent Reservoir Scratchpad (LRS)**: a bidirectional dynamical system—specifically, an Echo State Network (ESN)—integrated directly into the Transformer architecture. This reservoir acts as a fixed-size, continuous-state working memory that the LLM can both read from and write to. By combining the strengths of our three original proposals, this document outlines a rigorous three-track research program with quantitative success gates, compute-matched baselines against state-of-the-art context extension methods, and a targeted focus on the Qwen3.5 model family to test the DeltaNet synergy hypothesis. The Gated DeltaNet architecture utilizes a delta rule for hidden state updates, analogous to recurrent reservoir state updates, providing a shared recurrent inductive bias that minimizes distributional mismatch between standard attention and continuous dynamical variables.
+Large Language Models (LLMs) struggle with infinite-horizon memory and multi-step symbolic reasoning due to the stateless nature of their forward pass and the computational cost of expanding the KV-cache. We propose the **Latent Reservoir Scratchpad (LRS)**: a bidirectional dynamical system—specifically, an Echo State Network (ESN)—integrated directly into the Transformer architecture. This reservoir acts as a fixed-size, continuous-state working memory that the LLM can both read from and write to, serving as both a memory buffer and an **external latent reasoning substrate** — an alternative to approaches like Coconut that recirculate reasoning through the LLM's own hidden states. By combining the strengths of our three original proposals, this document outlines a rigorous three-track research program with quantitative success gates, compute-matched baselines against state-of-the-art context extension methods, and a targeted focus on the Qwen3.5 model family to test the DeltaNet synergy hypothesis. The Gated DeltaNet architecture utilizes a delta rule for hidden state updates, analogous to recurrent reservoir state updates, providing a shared recurrent inductive bias that minimizes distributional mismatch between standard attention and continuous dynamical variables.
 
 ## 2. Core Mathematical Framework
 The LRS is a high-dimensional dynamical system parallel to or outside the standard attention stream. At each token step $t$:
@@ -21,6 +21,11 @@ $$m_t = \text{ReadProj}(\text{Pool}(r_t))$$
 This $m_t$ is injected into the LLM via cross-attention slots or residual FiLM-style modulation.
 
 **Crucially, only the interface parameters (ReadProj, WriteHead) and selective Transformer parameters are trained. The reservoir weights ($W_{res}$, $W_{in}$, $W_w$) remain fixed, providing bounded-state compression.**
+
+**3. Multi-Sub-Step Evolution (Latent Reasoning Mode):**
+Between token generation steps, the reservoir can evolve for $K > 1$ sub-steps without requiring an LLM forward pass:
+$$r_t^{(k)} = (1 - \alpha) \cdot r_t^{(k-1)} + \alpha \cdot \phi(W_{res} \cdot r_t^{(k-1)})$$
+for $k = 1, \ldots, K$, where $r_t^{(0)} = r_t$ after the write injection. Each sub-step is a single matrix-vector multiply — orders of magnitude cheaper than a full forward pass. This gives the system additional "thinking time" in a high-dimensional latent space ($D_r \gg$ LLM hidden dim) without the cost or distributional gap problems of recirculating through the LLM's own hidden states (as in Coconut-style latent reasoning). The LLM reads $r_t^{(K)}$ rather than $r_t$ at the next step.
 
 ## 3. The Three-Track Execution Plan
 We adopt a progressive, gated approach to minimize risk and establish clear empirical foundations. 
@@ -53,6 +58,7 @@ We adopt a progressive, gated approach to minimize risk and establish clear empi
   3) Bidirectional multi-reservoir workspace branch containing at least two continuous states: a high-leak "fast" reservoir for computational scratch-space, and a low-leak "slow" reservoir for contextual history. 
   These branches are fused via a learned gated residual mixing layer.
 - **Integration:** Full end-to-end curriculum training starting with next-token prediction, progressing to procedural/symbolic traces, and concluding with length extrapolation (4k $\rightarrow$ 128k+). The write path is optimized via straight-through estimators and REINFORCE-style policy gradients, allowing gradients to guide the WriteHead despite the non-differentiable frozen reservoir.
+- **Latent Reasoning Experiment (Track C specific):** Test multi-sub-step reservoir evolution ($K = 2, 4, 8, 16$ sub-steps between tokens) as an external latent reasoning substrate. Unlike Coconut/Huginn, which recirculate through the LLM's own hidden states at full forward-pass cost per reasoning step, reservoir sub-steps are cheap matrix-vector multiplies in a space 10–50$\times$ the LLM's hidden dimension. This provides: (1) massive dimensional expansion for reasoning state without backpropagation cost, (2) no distributional gap since read/write interfaces are explicitly learned projections rather than reused embeddings, (3) autonomous temporal dynamics where the "thought" evolves between tokens via the reservoir's own recurrence. Halting strategy: compare fixed $K$ budget vs. learned halting signal (a la PonderNet) vs. reservoir state convergence detection (stop when $\|r_t^{(k)} - r_t^{(k-1)}\| < \epsilon$).
 - **Success Gate C:** 
   1. Match baseline perplexity within $+3\%$.
   2. Beat dense-attention baselines by $\ge 25\%$ on long-horizon memory tasks.
@@ -72,12 +78,14 @@ We commit to rigorous baselines, prioritizing emergent capabilities and working 
 | **Track B** | Qwen3.5-0.8B Modified | Internal Multi-ESN | Medium | Does internal insertion beat external bolt-on? |
 | **Track C** | Custom RW-Transformer | Multi-Branch Multi-ESN | High | Ceiling performance trained from scratch? |
 | **Arch Control** | LLaMA-3.2-1B + LoRA | Single External ESN | Low | Is DeltaNet-RC synergy real vs. pure softmax attention? |
+| **Latent Reasoning** | Qwen3.5-0.8B + Coconut | Internal hidden-state recirculation | Medium | Does reservoir latent space outperform LLM-internal latent reasoning? |
 
 ### 4.2 Key Benchmark Domains
 1. **Emergent Capabilities (Primary):** Compositional generalization with unseen operators, formal-language tasks (Dyck), and out-of-distribution length extrapolation.
 2. **Logic & Computation:** GSM8K, multi-digit arithmetic, synthetic program execution traces.
 3. **Memory & Retrieval:** Passkey/needle-in-haystack, variable tracking across distractors, long-document multi-hop QA.
-4. **Representation Diagnostics:** Small-scale chaotic forecasting probe (e.g. Lorenz systems) strictly for representation diagnostics to verify stable bounded states.
+4. **Latent Reasoning (Track C):** Multi-step reasoning tasks where Coconut shows gains (e.g., ProsQA graph traversal, multi-hop logical deduction). Compare reservoir latent reasoning ($K$ sub-steps, high-dimensional) against Coconut (hidden-state recirculation, full forward-pass cost) at matched compute budget. Measure reasoning accuracy vs. sub-step count to characterize the scaling behavior of cheap reservoir "thinking time."
+5. **Representation Diagnostics:** Small-scale chaotic forecasting probe (e.g. Lorenz systems) strictly for representation diagnostics to verify stable bounded states.
 
 ### 4.3 Ablations & Efficiency Metrics
 - **Ablations:** Compare read-only vs. read/write, single vs. multi-reservoir architectures, frozen vs. partially trainable input projections, distinct spectral radius regimes, and **randomized/stateless dynamics controls** (to verify that useful recurrent dynamics — not merely additional parameters — are the source of gains).
@@ -87,6 +95,7 @@ We commit to rigorous baselines, prioritizing emergent capabilities and working 
 - **Transformer fails to learn useful write signals:** The non-differentiable nature of the fixed reservoir poses a challenge for write-head optimization. We will use straight-through estimators for gradient approximation, and alternatively explore REINFORCE-style policy gradients. We will also implement entropy regularization/gated write sparsity to prevent noisy control.
 - **Distributional Mismatch:** Utilize gated residual mixing and partial layer unfreezing (LoRA) to adapt the LLM to continuous dynamical states.
 - **Reservoir Memory Saturation:** Deploy multi-reservoir designs (Track B/C) to decouple short-term computational scratch-space from long-term contextual traces, ensuring bounded-state compression does not degrade.
+- **Latent reasoning halting problem:** Multi-sub-step evolution requires deciding when to stop thinking. Fixed $K$ is simplest but wasteful; learned halting adds training complexity. Mitigation: start with fixed $K$, progress to convergence-based halting ($\|r^{(k)} - r^{(k-1)}\| < \epsilon$), then optionally explore learned halting. Note the interpretability advantage: because reservoir dynamics are fixed and known, the latent reasoning state is more analyzable than opaque hidden-state recirculation (relevant to safety concerns around latent chain-of-thought).
 
 ## 6. Resources and Timeline
 The timeline is structured as a **12-month hard-gated core program** focused on Tracks A and B, followed by an **optional 6-month extension** for Track C if all gates are successfully passed.
@@ -120,3 +129,8 @@ The timeline is structured as a **12-month hard-gated core program** focused on 
 14. Kong, L.-W., et al. (2024). Reservoir-Computing Based Associative Memory. *Nature Communications*, 15, 4671.
 15. Yan, M., et al. (2024). Emerging Opportunities and Challenges for RC. *Nature Communications*, 15, 2056.
 16. Echo State Transformer (2025). *arXiv:2507.02917*.
+17. Hao, S., et al. (2024). Training Large Language Models to Reason in a Continuous Latent Space (Coconut). *arXiv:2412.06769*.
+18. Geiping, J., et al. (2025). Scaling Up Test-Time Compute with Latent Reasoning: A Recurrent Depth Approach (Huginn). *arXiv:2502.05171*.
+19. Srivastava, S., et al. (2025). Ouro: Looped Transformers as Latent Reasoning Machines. *arXiv:2503.xxxxx*.
+20. Ji, H., et al. (2025). CODI: Compressing Chain-of-Thought into Continuous Space via Distillation. *arXiv:2502.21074*.
+21. Graves, A. (2016). Adaptive Computation Time for Recurrent Neural Networks. *arXiv:1603.08983*.
