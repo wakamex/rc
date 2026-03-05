@@ -11,7 +11,7 @@ import math
 from typing import Any
 
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, PreTrainedTokenizerBase
+from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, PreTrainedTokenizerBase
 
 from src.types import ModelWrapper as ModelWrapperProtocol  # noqa: F401 (imported for protocol conformance check)
 
@@ -318,8 +318,15 @@ def load_model(
     tokenizer = AutoTokenizer.from_pretrained(hf_id, trust_remote_code=trust_remote_code)
     tok_wrapper = TokenizerWrapper(tokenizer, key)
 
+    # Some models (e.g. Qwen3.5) are multimodal and nest the text config
+    # inside a composite config.  Detect this and pass the text sub-config
+    # so AutoModelForCausalLM loads the correct architecture.
+    config = AutoConfig.from_pretrained(hf_id, trust_remote_code=trust_remote_code)
+    text_config = getattr(config, "text_config", None)
+
     model = AutoModelForCausalLM.from_pretrained(
         hf_id,
+        config=text_config if text_config is not None else config,
         torch_dtype=dtype,
         device_map=str(device),
         trust_remote_code=trust_remote_code,

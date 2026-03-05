@@ -117,7 +117,7 @@ class TextEvalAdapter:
         self._latencies.append(elapsed)
 
         new_ids = output_ids[0, prompt_len:]
-        return self._tok.decode(new_ids, skip_special_tokens=True)
+        return self._tok.decode(new_ids)
 
     def get_hidden(self, input_ids: Any, layer: int = -1, **kwargs: Any) -> Any:
         outputs = self._model(
