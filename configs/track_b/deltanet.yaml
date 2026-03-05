@@ -1,0 +1,86 @@
+# Track B Config 2: DeltaNet block replacement with ESN
+# Used by scripts/train_track_b_deltanet.py
+#
+# Architecture: Frozen Qwen3.5-0.8B-Base + LoRA + ESN replacement of DeltaNet blocks
+#   - Replace 6 of 18 DeltaNet blocks (every 3rd) with ESN reservoir modules
+#   - Learned gating: output = gate * esn_out + (1-gate) * original_deltanet_out
+#   - DEEPER integration than Track A: ESN replaces rather than supplements DeltaNet
+
+# ---------------------------------------------------------------------------
+# Model
+# ---------------------------------------------------------------------------
+model_name: "qwen3.5-0.8b"
+dtype: "bfloat16"
+device: "cuda"
+
+# ---------------------------------------------------------------------------
+# ESN reservoir — best HP from T16 sweep (best_combo.yaml)
+# ---------------------------------------------------------------------------
+reservoir_size: 10000
+spectral_radius: 0.9
+leak_rate: 0.5
+input_scaling: 1.0
+reservoir_sparsity: 0.01
+reservoir_seed: 42
+
+# ---------------------------------------------------------------------------
+# DeltaNet replacement config
+# ---------------------------------------------------------------------------
+# Replace every 3rd DeltaNet block → 6 of 18 DeltaNet blocks replaced
+replace_every_nth_deltanet: 3
+num_deltanet_blocks: 18          # Qwen3.5-0.8B has 18 DeltaNet blocks
+# Gate initialization: 0.5 = equal mix initially, 0 = start at pure DeltaNet
+replacement_gate_init: 0.5
+
+# ---------------------------------------------------------------------------
+# LoRA adapter settings
+# ---------------------------------------------------------------------------
+lora_rank: 16
+lora_alpha: 32.0
+lora_dropout: 0.05
+lora_targets:
+  - q_proj
+  - v_proj
+
+# ---------------------------------------------------------------------------
+# Optimizer
+# ---------------------------------------------------------------------------
+lr: 2.0e-4
+interface_lr: 1.0e-3
+weight_decay: 0.01
+
+# ---------------------------------------------------------------------------
+# LR schedule
+# ---------------------------------------------------------------------------
+warmup_steps: 100
+max_steps: 5000
+
+# ---------------------------------------------------------------------------
+# Training loop
+# ---------------------------------------------------------------------------
+batch_size: 4
+grad_accum: 4
+max_seq_length: 2048
+gradient_checkpointing: true
+seed: 42
+
+# ---------------------------------------------------------------------------
+# Data: FineWeb subset (same as Track A)
+# ---------------------------------------------------------------------------
+dataset_name: "HuggingFaceFW/fineweb"
+dataset_config: "sample-10BT"
+
+# ---------------------------------------------------------------------------
+# Output
+# ---------------------------------------------------------------------------
+output_dir: "checkpoints/track_b/deltanet"
+results_file: "results/track_b/deltanet.json"
+log_interval: 50
+save_interval: 1000
+
+# ---------------------------------------------------------------------------
+# Weights & Biases
+# ---------------------------------------------------------------------------
+no_wandb: false
+wandb_project: "lrs-track-b"
+wandb_run_name: "track-b-deltanet-qwen3.5-0.8b"

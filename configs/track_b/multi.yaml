@@ -1,0 +1,103 @@
+# Track B Config 3: Multi-reservoir (fast/slow) with RIL insertion
+# Used by scripts/train_track_b_multi.py
+#
+# Architecture: Frozen Qwen3.5-0.8B-Base + LoRA + dual-timescale MultiReservoir
+#   with RIL (Reservoir Interaction Layer) inserted every 6 transformer blocks.
+#   Combines T21 (multi-reservoir) + T19 (RIL insertion).
+#
+# Fast reservoir: high leak rate (0.9), captures recent token patterns
+# Slow reservoir: low leak rate (0.1), maintains long-range context
+# Combined state [r_fast; r_slow] fed to RIL cross-attention
+
+# ---------------------------------------------------------------------------
+# Model
+# ---------------------------------------------------------------------------
+model_name: "qwen3.5-0.8b"
+dtype: "bfloat16"
+device: "cuda"
+
+# ---------------------------------------------------------------------------
+# Fast reservoir (high leak rate — responds quickly to recent input)
+# ---------------------------------------------------------------------------
+fast_reservoir_size: 5000       # half of single-reservoir size (total = 10K)
+fast_spectral_radius: 0.9       # best from T16 sweep
+fast_leak_rate: 0.9             # high leak rate = fast timescale
+fast_reservoir_seed: 42
+
+# ---------------------------------------------------------------------------
+# Slow reservoir (low leak rate — long-horizon memory)
+# ---------------------------------------------------------------------------
+slow_reservoir_size: 5000       # half of single-reservoir size (total = 10K)
+slow_spectral_radius: 0.5       # lower spectral radius for slow dynamics
+slow_leak_rate: 0.1             # low leak rate = slow timescale
+slow_reservoir_seed: 43
+
+# Combined dim = fast_reservoir_size + slow_reservoir_size = 10000
+
+# ---------------------------------------------------------------------------
+# Shared reservoir config
+# ---------------------------------------------------------------------------
+input_scaling: 1.0
+reservoir_sparsity: 0.01
+
+# ---------------------------------------------------------------------------
+# RIL insertion (same schedule as Config 1: every 6 blocks)
+# ---------------------------------------------------------------------------
+ril_every_n_layers: 6
+ril_layers: null           # null → use ril_every_n_layers
+num_heads: 8
+ril_dropout: 0.0
+unfreeze_adjacent_layernorms: true
+
+# ---------------------------------------------------------------------------
+# LoRA adapter settings
+# ---------------------------------------------------------------------------
+lora_rank: 16
+lora_alpha: 32.0
+lora_dropout: 0.05
+lora_targets:
+  - q_proj
+  - v_proj
+
+# ---------------------------------------------------------------------------
+# Optimizer
+# ---------------------------------------------------------------------------
+lr: 2.0e-4
+interface_lr: 1.0e-3
+weight_decay: 0.01
+
+# ---------------------------------------------------------------------------
+# LR schedule
+# ---------------------------------------------------------------------------
+warmup_steps: 100
+max_steps: 5000
+
+# ---------------------------------------------------------------------------
+# Training loop
+# ---------------------------------------------------------------------------
+batch_size: 4
+grad_accum: 4
+max_seq_length: 2048
+gradient_checkpointing: true
+seed: 42
+
+# ---------------------------------------------------------------------------
+# Data: FineWeb subset (same as Track A)
+# ---------------------------------------------------------------------------
+dataset_name: "HuggingFaceFW/fineweb"
+dataset_config: "sample-10BT"
+
+# ---------------------------------------------------------------------------
+# Output
+# ---------------------------------------------------------------------------
+output_dir: "checkpoints/track_b/multi"
+results_file: "results/track_b/multi.json"
+log_interval: 50
+save_interval: 1000
+
+# ---------------------------------------------------------------------------
+# Weights & Biases
+# ---------------------------------------------------------------------------
+no_wandb: false
+wandb_project: "lrs-track-b"
+wandb_run_name: "track-b-multi-qwen3.5-0.8b"
