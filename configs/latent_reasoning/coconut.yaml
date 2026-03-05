@@ -1,0 +1,48 @@
+# T27: Coconut Baseline Configuration
+# Used by scripts/coconut_baseline.py
+#
+# Coconut-style hidden-state recirculation on Qwen2.5-0.5B.
+# Compared against reservoir latent reasoning at matched FLOPs.
+#
+# Reference: "Training Large Language Models to Reason in a Continuous
+# Latent Space" (Hao et al., 2024) — chain-of-continuous-thought (Coconut).
+
+# ---------------------------------------------------------------------------
+# Coconut K values
+# ---------------------------------------------------------------------------
+# Number of hidden-state recirculation steps to evaluate.
+# Note: each step costs one full transformer forward pass, so K must be
+# kept small to remain computationally feasible.
+k_values: [1, 2, 4]
+
+# ---------------------------------------------------------------------------
+# Matched FLOPs comparison
+# ---------------------------------------------------------------------------
+# Set matched_flops: true to automatically compute the Coconut K that
+# matches the reservoir compute budget at reservoir_k sub-steps.
+matched_flops: true
+
+# Reservoir configuration for FLOPs estimation
+reservoir_k: 16            # Reservoir K to match against
+reservoir_size: 5000       # Reservoir neurons
+sparsity: 0.01             # Reservoir sparsity
+
+# ---------------------------------------------------------------------------
+# Model
+# ---------------------------------------------------------------------------
+# Model: Qwen2.5-0.5B (lightweight proxy; swap for Qwen2.5-0.8B for full eval)
+device: "cuda"
+dtype: "bfloat16"
+
+# ---------------------------------------------------------------------------
+# Evaluation
+# ---------------------------------------------------------------------------
+n_examples: 50
+max_seq_len: 512
+
+# ---------------------------------------------------------------------------
+# Output
+# ---------------------------------------------------------------------------
+# Results written to:
+#   results/track_c/latent_reasoning/coconut_baseline.json
+#   results/track_c/latent_reasoning/comparison.json   (vs reservoir)

@@ -1,0 +1,38 @@
+# T27: Cloud configuration for large-K latent reasoning sweep
+# Used by scripts/latent_reasoning_sweep.py on A100 cloud instances
+#
+# This config extends the local sweep to larger K values and more examples.
+# Estimated time: ~50h on A100 80GB (Lambda Labs or RunPod spot)
+# Cost estimate: ~50h × $0.50/h = ~$25
+
+# ---------------------------------------------------------------------------
+# Extended K sweep for cloud
+# ---------------------------------------------------------------------------
+k_values: [1, 2, 4, 8, 16, 32, 64]
+
+halting: ["fixed", "convergence", "ponder"]
+epsilon: 1.0e-3
+ponder_lambda: 0.01
+
+# ---------------------------------------------------------------------------
+# Reservoir (same as pretrain config)
+# ---------------------------------------------------------------------------
+reservoir_size: 5000
+spectral_radius: 0.9
+leak_rate: 0.9
+input_scaling: 1.0
+sparsity: 0.01
+seed: 42
+
+# ---------------------------------------------------------------------------
+# Evaluation (larger than local)
+# ---------------------------------------------------------------------------
+n_examples: 200            # More examples per task for statistical significance
+max_seq_len: 512
+device: "cuda"
+dtype: "bfloat16"
+
+# ---------------------------------------------------------------------------
+# Checkpoint (use Track C pre-trained model if available)
+# ---------------------------------------------------------------------------
+checkpoint: "checkpoints/track_c/final"

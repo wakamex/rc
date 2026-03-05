@@ -1,0 +1,44 @@
+{
+  "track": "C",
+  "task": "T27",
+  "experiment": "latent_reasoning_k_sweep",
+  "k_values_tested": [
+    1,
+    2
+  ],
+  "halting_strategies_tested": [
+    "fixed",
+    "convergence"
+  ],
+  "n_runs": 4,
+  "best": {
+    "best_k": 1,
+    "best_halting": "fixed",
+    "best_mean_accuracy": 0.5344,
+    "best_task_accuracies": {
+      "prosqa_deduction": 0.5344,
+      "multi_hop": 0.5344,
+      "arithmetic": 0.5344,
+      "passkey": 0.5344
+    }
+  },
+  "timestamp": 1772693308.0216773,
+  "k_scaling": {
+    "prosqa_deduction": {
+      "1": 0.5344,
+      "2": 0.5344
+    },
+    "multi_hop": {
+      "1": 0.5344,
+      "2": 0.5344
+    },
+    "arithmetic": {
+      "1": 0.5344,
+      "2": 0.5344
+    },
+    "passkey": {
+      "1": 0.5344,
+      "2": 0.5344
+    }
+  }
+}

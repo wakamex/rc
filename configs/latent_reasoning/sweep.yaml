@@ -1,0 +1,65 @@
+# T27: Latent Reasoning K-Sweep Configuration
+# Used by scripts/latent_reasoning_sweep.py
+#
+# Tests multi-sub-step reservoir evolution between tokens.
+# Between token t and t+1, the reservoir evolves for K additional sub-steps
+# without new input — giving it 'thinking time' in state space.
+#
+# Experiments:
+#   1. K sweep: K = 1, 2, 4, 8, 16 sub-steps
+#   2. Halting strategies: fixed, convergence, ponder
+#
+# Hardware: local GPU (small K) + cloud (large K)
+# Estimated time: ~40h local + ~50h cloud
+
+# ---------------------------------------------------------------------------
+# K sweep
+# ---------------------------------------------------------------------------
+k_values: [1, 2, 4, 8, 16]
+
+# ---------------------------------------------------------------------------
+# Halting strategies to test
+# ---------------------------------------------------------------------------
+# "fixed"       — always run exactly K sub-steps (baseline)
+# "convergence" — stop early when ‖r^(k) − r^(k−1)‖ < epsilon
+# "ponder"      — PonderNet-style learned halting probability
+halting: ["fixed", "convergence", "ponder"]
+
+# Convergence threshold for "convergence" halting
+epsilon: 1.0e-3
+
+# PonderNet regularisation weight (penalises excess computation)
+ponder_lambda: 0.01
+
+# ---------------------------------------------------------------------------
+# Reservoir configuration
+# ---------------------------------------------------------------------------
+# Fast-timescale reservoir parameters (matches Track C pre-training defaults)
+reservoir_size: 5000
+spectral_radius: 0.9
+leak_rate: 0.9
+input_scaling: 1.0
+sparsity: 0.01
+seed: 42
+
+# ---------------------------------------------------------------------------
+# Evaluation
+# ---------------------------------------------------------------------------
+n_examples: 50             # Examples per benchmark task
+max_seq_len: 512           # Max sequence length for eval
+device: "cuda"
+dtype: "bfloat16"
+
+# ---------------------------------------------------------------------------
+# Model checkpoint
+# ---------------------------------------------------------------------------
+# Point to a pre-trained RW-Transformer checkpoint (T26) if available.
+# If null, falls back to Qwen2.5-0.5B as a proxy model.
+# checkpoint: "checkpoints/track_c/final"
+checkpoint: null
+
+# ---------------------------------------------------------------------------
+# Output
+# ---------------------------------------------------------------------------
+# Results written to results/track_c/latent_reasoning/ (hardcoded in script)
+# Plots: results/track_c/latent_reasoning/plots/
