@@ -1,0 +1,145 @@
+# Track C Pre-training Configuration
+# Used by scripts/train_track_c.py
+#
+# Task: T26 — Pre-train the RW-Transformer (T24) from scratch using the
+# curriculum (T25) on cloud A100(s).
+#
+# Architecture: RW-Transformer (~0.8B trainable params)
+#   - Three parallel branches per decoder block: attention, MLP, reservoir workspace
+#   - Gated residual mixing for branch fusion
+#   - Fast/slow dual-timescale multi-reservoir (T21)
+#   - Same tokenizer as Qwen3.5 (248K vocab) for fair comparison
+#
+# Training: Full AdamW from scratch (not LoRA), BF16, gradient checkpointing
+# Target: ~20B tokens minimum; continue if loss still decreasing
+# Cloud: RunPod or Lambda A100 80GB spot instances (~500 h, $250-400)
+
+# ---------------------------------------------------------------------------
+# Model
+# ---------------------------------------------------------------------------
+# model_config: null   # null → use default RWTransformerConfig (~0.8B params)
+dtype: "bfloat16"
+device: "cuda"
+
+# ---------------------------------------------------------------------------
+# Reservoir (fast/slow dual-timescale, T21)
+# ---------------------------------------------------------------------------
+# Fast reservoir: high leak rate, captures recent/syntactic patterns
+fast_reservoir_size: 5000
+fast_spectral_radius: 0.9
+fast_leak_rate: 0.9
+fast_reservoir_seed: 42
+
+# Slow reservoir: low leak rate, long-term contextual memory
+slow_reservoir_size: 5000
+slow_spectral_radius: 0.5
+slow_leak_rate: 0.1
+slow_reservoir_seed: 43
+
+# Shared reservoir settings
+input_scaling: 1.0
+reservoir_sparsity: 0.01
+
+# ---------------------------------------------------------------------------
+# Optimizer (full AdamW — training from scratch)
+# ---------------------------------------------------------------------------
+lr: 3.0e-4          # Peak LR; matches GPT-3 / Chinchilla scaling for 0.8B
+weight_decay: 0.1
+adam_beta1: 0.9
+adam_beta2: 0.95
+adam_eps: 1.0e-8
+max_grad_norm: 1.0
+min_lr_ratio: 0.1   # LR at end of cosine decay = 0.1 × peak_lr = 3e-5
+
+# ---------------------------------------------------------------------------
+# LR schedule: cosine with linear warmup
+# ---------------------------------------------------------------------------
+warmup_steps: 2000          # ~2K steps linear warmup
+max_steps: 200000           # 200K × 4K ctx × 4 batch ≈ 3.2T token budget (stop at 20B min)
+
+# ---------------------------------------------------------------------------
+# Training loop
+# ---------------------------------------------------------------------------
+batch_size: 4               # Micro-batch size per GPU
+grad_accum: 8               # Effective batch = 4 × 8 = 32 sequences
+# Effective tokens/step = 32 × 4096 = 131,072 tokens
+# 20B tokens / 131K ≈ 153K steps to reach minimum token target
+gradient_checkpointing: true
+seed: 42
+
+# ---------------------------------------------------------------------------
+# Curriculum (T25): three-stage training
+# ---------------------------------------------------------------------------
+# Stage 1: general text only, standard next-token prediction
+stage1_steps: 50000         # ~6.5B tokens (50K × 131K)
+# Stage 2: mixed text + procedural objectives
+stage2_steps: 50000         # ~6.5B tokens
+text_ratio_stage2: 0.7
+procedural_ratio_stage2: 0.3
+# Stage 3: length curriculum 4K → 8K → 16K → 32K → 128K
+stage3_steps_per_length: 10000
+
+# Base context length (Stages 1 and 2)
+max_seq_length: 4096
+
+# Use step-based stage transitions (not loss-plateau)
+use_loss_plateau: false
+
+# ---------------------------------------------------------------------------
+# Data
+# ---------------------------------------------------------------------------
+dataset_name: "HuggingFaceFW/fineweb"
+dataset_config: "sample-10BT"
+dataset_split: "train"
+text_column: "text"
+
+# ---------------------------------------------------------------------------
+# Evaluation
+# ---------------------------------------------------------------------------
+eval_every_tokens: 2000000000   # Eval every ~2B tokens
+eval_steps: 100                 # Batches for perplexity estimation
+
+# ---------------------------------------------------------------------------
+# Early stopping
+# ---------------------------------------------------------------------------
+divergence_threshold: 10.0     # Stop if loss > 10× min observed loss
+
+# ---------------------------------------------------------------------------
+# Output / checkpointing
+# ---------------------------------------------------------------------------
+output_dir: "checkpoints/track_c"
+results_file: "results/track_c/pretrain.json"
+log_interval: 100              # Log every 100 steps
+save_interval: 5000            # Save checkpoint every 5K steps
+                               # (every ~655M tokens at 131K tok/step)
+
+# ---------------------------------------------------------------------------
+# Weights & Biases
+# ---------------------------------------------------------------------------
+no_wandb: false
+wandb_project: "lrs-track-c"
+wandb_run_name: "track-c-pretrain-rw-transformer"
+
+# ---------------------------------------------------------------------------
+# Notes for cloud operators
+# ---------------------------------------------------------------------------
+# 1. Run setup first:
+#      bash scripts/cloud_setup.sh
+#
+# 2. Launch training (in tmux for SSH resilience):
+#      tmux new -s train
+#      python scripts/train_track_c.py --config configs/track_c_pretrain.yaml
+#
+# 3. To resume from checkpoint:
+#      python scripts/train_track_c.py \
+#        --config configs/track_c_pretrain.yaml \
+#        --resume_from checkpoints/track_c/step_50000
+#
+# 4. Monitor via wandb: https://wandb.ai/<entity>/lrs-track-c
+#
+# 5. Acceptance criteria (T26):
+#      - Training loss converges (no divergence)
+#      - Final eval perplexity within +3% of Qwen3.5-0.8B baseline (T7)
+#      - Minimum 20B tokens trained
+#
+# Cost estimate: ~500 h × $0.50/h (A100 spot) = ~$250
