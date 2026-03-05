@@ -1,0 +1,75 @@
+# LoRA + adapter training pipeline configuration template
+# Used by src/training/lora_trainer.py :: LoRATrainingConfig
+
+# ---------------------------------------------------------------------------
+# LoRA adapter settings
+# ---------------------------------------------------------------------------
+lora_rank: 16          # rank r; supported range 4–64
+lora_alpha: 32         # LoRA scaling factor (alpha); typically 2×rank
+lora_dropout: 0.1
+bias: "none"           # which biases to train: "none" | "all" | "lora_only"
+
+# Target module names for LoRA injection.
+# Set per model family — leave null to use loader defaults (get_lora_targets).
+target_modules: null
+# Qwen3.5-0.8B example:
+#   target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+# LLaMA-3.2-1B example:
+#   target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+# Mamba-2 1.3B example:
+#   target_modules: [in_proj, out_proj, x_proj, dt_proj]
+
+# ---------------------------------------------------------------------------
+# Optimizer
+# ---------------------------------------------------------------------------
+lora_lr: 2.0e-4        # learning rate for LoRA adapter params
+interface_lr: 1.0e-3   # learning rate for reservoir interface params
+weight_decay: 0.01
+max_grad_norm: 1.0
+adam_eps: 1.0e-8
+
+# ---------------------------------------------------------------------------
+# LR schedule: cosine decay with linear warmup
+# ---------------------------------------------------------------------------
+num_warmup_steps: 100
+num_training_steps: 5000
+
+# ---------------------------------------------------------------------------
+# Training loop
+# ---------------------------------------------------------------------------
+gradient_checkpointing: true   # enables model.gradient_checkpointing_enable()
+mixed_precision: true          # BF16 autocast on CUDA (ignored on CPU)
+
+# ---------------------------------------------------------------------------
+# Checkpointing
+# ---------------------------------------------------------------------------
+checkpoint_dir: "checkpoints"
+save_every_n_steps: 500        # save LoRA + interface weights (not frozen base)
+
+# ---------------------------------------------------------------------------
+# Early stopping (based on validation loss)
+# ---------------------------------------------------------------------------
+early_stopping_patience: 10    # stop after N val evals without improvement
+early_stopping_min_delta: 1.0e-4
+
+# ---------------------------------------------------------------------------
+# Validation
+# ---------------------------------------------------------------------------
+val_every_n_steps: 250         # run validation every N training steps
+val_steps: 20                  # number of batches per validation pass
+
+# ---------------------------------------------------------------------------
+# Wandb logging
+# ---------------------------------------------------------------------------
+use_wandb: false
+wandb_project: "lrs-lora"
+wandb_run_name: null           # auto-generated if null
+
+# ---------------------------------------------------------------------------
+# Dataset mixing ratios
+# Weights are normalised automatically; unused if passing a single dataset.
+# ---------------------------------------------------------------------------
+dataset_mixing_ratios:
+  fineweb: 0.6       # general text (FineWeb subset)
+  synthetic: 0.3     # synthetic task data (T5 generators)
+  chaotic: 0.1       # chaotic systems sequences (T6 data)
