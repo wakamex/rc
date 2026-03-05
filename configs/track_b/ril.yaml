@@ -1,0 +1,88 @@
+# Track B Config 1: Reservoir Interaction Layer (RIL) insertion
+# Used by scripts/train_track_b_ril.py
+#
+# Architecture: Frozen Qwen3.5-0.8B-Base + LoRA + ESN reservoir
+#   with RIL (Reservoir Interaction Layer) inserted every 6 transformer blocks.
+#   RIL provides DEEPER integration than Track A's CrossAttentionSidecar:
+#   - Pre-norm + gated cross-attention + post-norm
+#   - Adjacent LayerNorms selectively unfrozen
+
+# ---------------------------------------------------------------------------
+# Model
+# ---------------------------------------------------------------------------
+model_name: "qwen3.5-0.8b"
+dtype: "bfloat16"
+device: "cuda"
+
+# ---------------------------------------------------------------------------
+# ESN reservoir — best HP from T16 sweep (best_combo.yaml)
+# ---------------------------------------------------------------------------
+reservoir_size: 10000
+spectral_radius: 0.9
+leak_rate: 0.5
+input_scaling: 1.0
+reservoir_sparsity: 0.01
+reservoir_seed: 42
+
+# ---------------------------------------------------------------------------
+# RIL insertion (Track B deeper integration)
+# ---------------------------------------------------------------------------
+# Insert RIL every 6 transformer blocks (Qwen3.5 has 28 layers → inserts at 5, 11, 17, 23)
+ril_every_n_layers: 6
+ril_layers: null           # null → use ril_every_n_layers; or specify explicit list
+num_heads: 8               # Cross-attention heads in RIL
+ril_dropout: 0.0
+unfreeze_adjacent_layernorms: true   # Track B deeper integration: unfreeze adjacent LNs
+
+# ---------------------------------------------------------------------------
+# LoRA adapter settings
+# ---------------------------------------------------------------------------
+lora_rank: 16
+lora_alpha: 32.0
+lora_dropout: 0.05
+lora_targets:
+  - q_proj
+  - v_proj
+
+# ---------------------------------------------------------------------------
+# Optimizer
+# ---------------------------------------------------------------------------
+lr: 2.0e-4           # LoRA adapter learning rate
+interface_lr: 1.0e-3 # RIL interface params learning rate
+weight_decay: 0.01
+
+# ---------------------------------------------------------------------------
+# LR schedule: cosine decay with linear warmup
+# ---------------------------------------------------------------------------
+warmup_steps: 100
+max_steps: 5000
+
+# ---------------------------------------------------------------------------
+# Training loop
+# ---------------------------------------------------------------------------
+batch_size: 4
+grad_accum: 4           # effective batch = 16
+max_seq_length: 2048
+gradient_checkpointing: true
+seed: 42
+
+# ---------------------------------------------------------------------------
+# Data: FineWeb subset (same as Track A)
+# ---------------------------------------------------------------------------
+dataset_name: "HuggingFaceFW/fineweb"
+dataset_config: "sample-10BT"
+
+# ---------------------------------------------------------------------------
+# Output
+# ---------------------------------------------------------------------------
+output_dir: "checkpoints/track_b/ril"
+results_file: "results/track_b/ril.json"
+log_interval: 50
+save_interval: 1000
+
+# ---------------------------------------------------------------------------
+# Weights & Biases
+# ---------------------------------------------------------------------------
+no_wandb: false
+wandb_project: "lrs-track-b"
+wandb_run_name: "track-b-ril-qwen3.5-0.8b"
