@@ -1,0 +1,142 @@
+{
+  "runs": [
+    {
+      "k_substeps": 1,
+      "halting": "fixed",
+      "epsilon": 0.001,
+      "task_accuracies": {
+        "prosqa_deduction": 0.5344,
+        "multi_hop": 0.5344,
+        "arithmetic": 0.5344,
+        "passkey": 0.5344
+      },
+      "mean_actual_steps": 20.0,
+      "mean_state_change_norm": 0.0,
+      "latency_ms_per_token": 0.24936022236943245,
+      "total_eval_time_s": 0.38301730155944824,
+      "error": null
+    },
+    {
+      "k_substeps": 2,
+      "halting": "fixed",
+      "epsilon": 0.001,
+      "task_accuracies": {
+        "prosqa_deduction": 0.5344,
+        "multi_hop": 0.5344,
+        "arithmetic": 0.5344,
+        "passkey": 0.5344
+      },
+      "mean_actual_steps": 40.0,
+      "mean_state_change_norm": 62.19584363301595,
+      "latency_ms_per_token": 0.1771286285171906,
+      "total_eval_time_s": 0.5441391468048096,
+      "error": null
+    },
+    {
+      "k_substeps": 1,
+      "halting": "convergence",
+      "epsilon": 0.001,
+      "task_accuracies": {
+        "prosqa_deduction": 0.5344,
+        "multi_hop": 0.5344,
+        "arithmetic": 0.5344,
+        "passkey": 0.5344
+      },
+      "mean_actual_steps": 20.0,
+      "mean_state_change_norm": 0.0,
+      "latency_ms_per_token": 0.2685193903744221,
+      "total_eval_time_s": 0.4124457836151123,
+      "error": null
+    },
+    {
+      "k_substeps": 2,
+      "halting": "convergence",
+      "epsilon": 0.001,
+      "task_accuracies": {
+        "prosqa_deduction": 0.5344,
+        "multi_hop": 0.5344,
+        "arithmetic": 0.5344,
+        "passkey": 0.5344
+      },
+      "mean_actual_steps": 40.0,
+      "mean_state_change_norm": 62.19584356943766,
+      "latency_ms_per_token": 0.13080867938697338,
+      "total_eval_time_s": 0.4018442630767822,
+      "error": null
+    }
+  ],
+  "configs": [
+    {
+      "k_substeps": 1,
+      "halting": "fixed",
+      "epsilon": 0.001,
+      "ponder_lambda": 0.01,
+      "reservoir_size": 5000,
+      "spectral_radius": 0.9,
+      "leak_rate": 0.9,
+      "input_scaling": 1.0,
+      "sparsity": 0.01,
+      "seed": 42,
+      "n_examples": 3,
+      "max_seq_len": 512,
+      "device": "cuda",
+      "dtype": "bfloat16",
+      "checkpoint": null,
+      "dry_run": true
+    },
+    {
+      "k_substeps": 2,
+      "halting": "fixed",
+      "epsilon": 0.001,
+      "ponder_lambda": 0.01,
+      "reservoir_size": 5000,
+      "spectral_radius": 0.9,
+      "leak_rate": 0.9,
+      "input_scaling": 1.0,
+      "sparsity": 0.01,
+      "seed": 42,
+      "n_examples": 3,
+      "max_seq_len": 512,
+      "device": "cuda",
+      "dtype": "bfloat16",
+      "checkpoint": null,
+      "dry_run": true
+    },
+    {
+      "k_substeps": 1,
+      "halting": "convergence",
+      "epsilon": 0.001,
+      "ponder_lambda": 0.01,
+      "reservoir_size": 5000,
+      "spectral_radius": 0.9,
+      "leak_rate": 0.9,
+      "input_scaling": 1.0,
+      "sparsity": 0.01,
+      "seed": 42,
+      "n_examples": 3,
+      "max_seq_len": 512,
+      "device": "cuda",
+      "dtype": "bfloat16",
+      "checkpoint": null,
+      "dry_run": true
+    },
+    {
+      "k_substeps": 2,
+      "halting": "convergence",
+      "epsilon": 0.001,
+      "ponder_lambda": 0.01,
+      "reservoir_size": 5000,
+      "spectral_radius": 0.9,
+      "leak_rate": 0.9,
+      "input_scaling": 1.0,
+      "sparsity": 0.01,
+      "seed": 42,
+      "n_examples": 3,
+      "max_seq_len": 512,
+      "device": "cuda",
+      "dtype": "bfloat16",
+      "checkpoint": null,
+      "dry_run": true
+    }
+  ]
+}
