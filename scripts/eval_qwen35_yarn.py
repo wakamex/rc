@@ -34,23 +34,10 @@ _REPO_ROOT = Path(__file__).parent.parent.resolve()
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from src.eval.benchmarks.computation import (  # noqa: E402
-    DyckLanguage,
-    ModularArithmetic,
-    MultiDigitArithmetic,
-    ProgramTrace,
-)
-from src.eval.benchmarks.emergent import (  # noqa: E402
-    AlgorithmicTransfer,
-    CompositionalGeneralization,
-    LengthExtrapolation,
-)
-from src.eval.benchmarks.memory import (  # noqa: E402
-    AssociativeRecall,
-    PasskeyRetrieval,
-    VariableTracking,
-)
+from src.eval.benchmarks.memory import PasskeyRetrieval, VariableTracking  # noqa: E402
+from src.eval.benchmarks.suite import build_benchmark_suite  # noqa: E402
 from src.eval.harness import EvalConfig, evaluate  # noqa: E402
+from src.models.eval_adapter import TextEvalAdapter  # noqa: E402
 from src.models.loader import MODEL_REGISTRY  # noqa: E402
 
 # ---------------------------------------------------------------------------
@@ -142,66 +129,7 @@ def load_qwen35_with_yarn(
     return model, tokenizer
 
 
-# ---------------------------------------------------------------------------
-# String-level eval adapter
-# ---------------------------------------------------------------------------
-
-
-class QwenYaRNEvalAdapter:
-    """Wraps Qwen3.5-YaRN model+tokenizer for the string-in / string-out harness."""
-
-    def __init__(
-        self,
-        model: Any,
-        tokenizer: Any,
-        device: torch.device,
-        max_new_tokens: int = 32,
-        max_input_length: int = 131072,
-    ) -> None:
-        self._model = model
-        self._tok = tokenizer
-        self.device = device
-        self.max_new_tokens = max_new_tokens
-        self.max_input_length = max_input_length
-
-    def forward(self, input_ids: Any, **kwargs: Any) -> Any:
-        return self._model(input_ids.to(self.device), **kwargs)
-
-    def get_hidden(self, input_ids: Any, layer: int = -1, **kwargs: Any) -> Any:
-        outputs = self._model(
-            input_ids.to(self.device),
-            output_hidden_states=True,
-            **kwargs,
-        )
-        return outputs.hidden_states[layer]
-
-    def generate(self, prompt: Any, **kwargs: Any) -> str:
-        """Accept a string prompt, return a string continuation."""
-        kwargs.pop("seed", None)
-
-        if isinstance(prompt, str):
-            encoded = self._tok(
-                prompt,
-                return_tensors="pt",
-                truncation=True,
-                max_length=self.max_input_length,
-            )
-            input_ids = encoded["input_ids"].to(self.device)
-        else:
-            input_ids = prompt.to(self.device)
-
-        prompt_len = input_ids.shape[1]
-
-        with torch.no_grad():
-            output_ids = self._model.generate(
-                input_ids,
-                max_new_tokens=self.max_new_tokens,
-                pad_token_id=self._tok.eos_token_id,
-                **kwargs,
-            )
-
-        new_ids = output_ids[0, prompt_len:]
-        return self._tok.decode(new_ids, skip_special_tokens=True)
+# QwenYaRNEvalAdapter moved to src.models.eval_adapter.TextEvalAdapter
 
 
 # ---------------------------------------------------------------------------
@@ -214,34 +142,7 @@ def _words_for_tokens(target_tokens: int) -> int:
     return max(100, int(target_tokens / _WORDS_PER_TOKEN))
 
 
-def build_standard_benchmarks(n: int) -> list[Any]:
-    """Return the standard benchmark suite (mirrors T7/T9 for fair comparison)."""
-    return [
-        # --- Memory ---
-        PasskeyRetrieval(n=n, context_length=200, seed=42),
-        PasskeyRetrieval(n=n, context_length=500, seed=43),
-        VariableTracking(n=n, num_variables=3, num_operations=5, seed=42),
-        VariableTracking(n=n, num_variables=5, num_operations=10, seed=43),
-        AssociativeRecall(n=n, num_pairs=5, delay_length=30, seed=42),
-        AssociativeRecall(n=n, num_pairs=10, delay_length=50, seed=43),
-        # --- Computation ---
-        MultiDigitArithmetic(n=n, digit_count=4, operation="addition", seed=42),
-        MultiDigitArithmetic(n=n, digit_count=4, operation="multiplication", seed=43),
-        ModularArithmetic(n=n, operand_size=100, modulus=97, seed=42),
-        DyckLanguage(n=n, max_depth=4, length=10, bracket_types=1, seed=42),
-        DyckLanguage(n=n, max_depth=4, length=10, bracket_types=3, seed=43),
-        ProgramTrace(n=n, num_steps=6, num_vars=3, seed=42),
-        # --- Emergent ---
-        CompositionalGeneralization(n=n, split="train", seed=42),
-        CompositionalGeneralization(n=n, split="test", seed=42),
-        LengthExtrapolation(n=n, train_length=5, test_multiplier=1.0, seed=42),
-        LengthExtrapolation(n=n, train_length=5, test_multiplier=2.0, seed=42),
-        LengthExtrapolation(n=n, train_length=5, test_multiplier=5.0, seed=42),
-        AlgorithmicTransfer(n=n, family="sorting", split="train", seed=42),
-        AlgorithmicTransfer(n=n, family="sorting", split="test", seed=42),
-        AlgorithmicTransfer(n=n, family="search", split="train", seed=42),
-        AlgorithmicTransfer(n=n, family="search", split="test", seed=42),
-    ]
+# build_standard_benchmarks moved to src.eval.benchmarks.suite.build_benchmark_suite
 
 
 def build_long_context_benchmarks(n: int) -> list[Any]:
@@ -466,7 +367,7 @@ def main() -> None:
     print(f"  Model max_position_embeddings: {model.config.max_position_embeddings}")
     print(f"  RoPE scaling config: {model.config.rope_scaling}")
 
-    adapter = QwenYaRNEvalAdapter(
+    adapter = TextEvalAdapter(
         model=model,
         tokenizer=tokenizer,
         device=device,
@@ -480,7 +381,7 @@ def main() -> None:
     benchmarks: list[Any] = []
 
     if not args.skip_standard:
-        standard = build_standard_benchmarks(args.n)
+        standard = build_benchmark_suite(n=args.n)
         for b in standard:
             b.name = _benchmark_name(b)  # type: ignore[attr-defined]
         benchmarks.extend(standard)

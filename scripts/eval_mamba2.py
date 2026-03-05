@@ -22,78 +22,12 @@ from typing import Any
 
 import torch
 
-from src.eval.benchmarks.computation import (
-    DyckLanguage,
-    ModularArithmetic,
-    MultiDigitArithmetic,
-    ProgramTrace,
-)
-from src.eval.benchmarks.emergent import (
-    AlgorithmicTransfer,
-    CompositionalGeneralization,
-    LengthExtrapolation,
-)
-from src.eval.benchmarks.memory import AssociativeRecall, PasskeyRetrieval, VariableTracking
+from src.eval.benchmarks.suite import build_benchmark_suite
 from src.eval.harness import EvalConfig, evaluate
+from src.models.eval_adapter import TextEvalAdapter
 from src.models.loader import load_model
 
-
-# ---------------------------------------------------------------------------
-# Text-generation wrapper (bridges string → tensor → string)
-# ---------------------------------------------------------------------------
-
-
-class TextGenerationWrapper:
-    """Wraps ModelWrapperImpl for use with the eval harness.
-
-    The harness calls model.generate(prompt_str) and expects a decoded string
-    back.  This wrapper tokenizes the prompt, runs the underlying model's
-    generate(), and decodes only the newly generated tokens.
-    """
-
-    def __init__(
-        self,
-        model_wrapper: Any,
-        max_new_tokens: int = 32,
-    ) -> None:
-        self._w = model_wrapper
-        self.max_new_tokens = max_new_tokens
-
-    def forward(self, input_ids: Any, **kwargs: Any) -> Any:
-        return self._w.forward(input_ids, **kwargs)
-
-    def get_hidden(self, input_ids: Any, layer: int = -1, **kwargs: Any) -> Any:
-        return self._w.get_hidden(input_ids, layer=layer, **kwargs)
-
-    def generate(self, prompt: Any, **kwargs: Any) -> str:
-        """Tokenize prompt, generate, decode new tokens only."""
-        # Accept both string prompts (from harness) and tensors (direct use)
-        if isinstance(prompt, str):
-            input_ids = self._w.tokenizer.encode(
-                prompt,
-                return_tensors="pt",
-                truncation=True,
-                max_length=2048,
-            ).to(self._w.device)
-        else:
-            input_ids = prompt.to(self._w.device)
-
-        prompt_len = input_ids.shape[1]
-
-        # Remove keys the underlying model doesn't accept
-        kwargs.pop("seed", None)
-
-        with torch.no_grad():
-            output_ids = self._w.model.generate(
-                input_ids,
-                max_new_tokens=self.max_new_tokens,
-                pad_token_id=self._w.tokenizer.eos_token_id,
-                **kwargs,
-            )
-
-        # Decode only the newly generated portion
-        new_ids = output_ids[0, prompt_len:]
-        return self._w.tokenizer.decode(new_ids)
+# TextGenerationWrapper moved to src.models.eval_adapter.TextEvalAdapter
 
 
 # ---------------------------------------------------------------------------
@@ -121,7 +55,7 @@ def _reset_vram_stats() -> None:
 
 
 def _measure_throughput(
-    wrapper: TextGenerationWrapper,
+    wrapper: TextEvalAdapter,
     prompt: str = "Hello, world!",
     n_runs: int = 10,
 ) -> dict[str, float]:
@@ -143,39 +77,7 @@ def _measure_throughput(
     }
 
 
-# ---------------------------------------------------------------------------
-# Benchmark suite
-# ---------------------------------------------------------------------------
-
-
-def build_benchmarks(n: int) -> list[Any]:
-    """Return the full benchmark suite (memory + computation + emergent)."""
-    return [
-        # --- Memory ---
-        PasskeyRetrieval(n=n, context_length=200, seed=42),
-        PasskeyRetrieval(n=n, context_length=500, seed=43),
-        VariableTracking(n=n, num_variables=3, num_operations=5, seed=42),
-        VariableTracking(n=n, num_variables=5, num_operations=10, seed=43),
-        AssociativeRecall(n=n, num_pairs=5, delay_length=30, seed=42),
-        AssociativeRecall(n=n, num_pairs=10, delay_length=50, seed=43),
-        # --- Computation ---
-        MultiDigitArithmetic(n=n, digit_count=4, operation="addition", seed=42),
-        MultiDigitArithmetic(n=n, digit_count=4, operation="multiplication", seed=43),
-        ModularArithmetic(n=n, operand_size=100, modulus=97, seed=42),
-        DyckLanguage(n=n, max_depth=4, length=10, bracket_types=1, seed=42),
-        DyckLanguage(n=n, max_depth=4, length=10, bracket_types=3, seed=43),
-        ProgramTrace(n=n, num_steps=6, num_vars=3, seed=42),
-        # --- Emergent ---
-        CompositionalGeneralization(n=n, split="train", seed=42),
-        CompositionalGeneralization(n=n, split="test", seed=42),
-        LengthExtrapolation(n=n, train_length=5, test_multiplier=1.0, seed=42),
-        LengthExtrapolation(n=n, train_length=5, test_multiplier=2.0, seed=42),
-        LengthExtrapolation(n=n, train_length=5, test_multiplier=5.0, seed=42),
-        AlgorithmicTransfer(n=n, family="sorting", split="train", seed=42),
-        AlgorithmicTransfer(n=n, family="sorting", split="test", seed=42),
-        AlgorithmicTransfer(n=n, family="search", split="train", seed=42),
-        AlgorithmicTransfer(n=n, family="search", split="test", seed=42),
-    ]
+# build_benchmarks moved to src.eval.benchmarks.suite.build_benchmark_suite
 
 
 def _benchmark_name(b: Any) -> str:
@@ -290,7 +192,7 @@ def main() -> None:
     vram_after_load_mb = _vram_mb()
     print(f"  VRAM after load: {vram_after_load_mb:.0f} MB")
 
-    wrapper = TextGenerationWrapper(model_wrapper, max_new_tokens=args.max_new_tokens)
+    wrapper = TextEvalAdapter(model_wrapper, max_new_tokens=args.max_new_tokens)
 
     # -----------------------------------------------------------------------
     # Throughput benchmark
@@ -305,7 +207,7 @@ def main() -> None:
     # -----------------------------------------------------------------------
     # Build benchmark suite and assign names
     # -----------------------------------------------------------------------
-    benchmarks = build_benchmarks(args.n)
+    benchmarks = build_benchmark_suite(n=args.n)
     # Inject `name` attribute so harness uses our descriptive names
     for b in benchmarks:
         b.name = _benchmark_name(b)  # type: ignore[attr-defined]

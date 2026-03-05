@@ -20,7 +20,6 @@ Usage::
 from __future__ import annotations
 
 import argparse
-import json
 import logging
 import time
 from pathlib import Path
@@ -64,55 +63,7 @@ def parse_args() -> argparse.Namespace:
 # ---------------------------------------------------------------------------
 
 
-class InfiniEvalWrapper:
-    """Adapts a loaded model + tokenizer for use with src.eval.harness.evaluate.
-
-    The harness calls model.generate(prompt_string, ...).  This wrapper
-    tokenizes the prompt, runs generate, and decodes the new tokens.
-    """
-
-    def __init__(self, model: object, tokenizer: object, device: torch.device,
-                 max_new_tokens: int = 50) -> None:
-        self.model = model
-        self.tokenizer = tokenizer
-        self.device = device
-        self.max_new_tokens = max_new_tokens
-
-    def forward(self, input_ids: torch.Tensor, **kwargs):  # type: ignore[override]
-        return self.model(input_ids.to(self.device), **kwargs)
-
-    def generate(self, prompt: str | torch.Tensor, **kwargs) -> str:  # type: ignore[override]
-        from src.models.infini_attention import reset_infini_memory
-        import torch
-
-        if isinstance(prompt, str):
-            input_ids = self.tokenizer(  # type: ignore[operator]
-                prompt, return_tensors="pt", truncation=True, max_length=1024
-            )["input_ids"].to(self.device)
-        else:
-            input_ids = prompt.to(self.device)
-
-        # Reset memory before each generation call.
-        reset_infini_memory(self.model)  # type: ignore[arg-type]
-
-        with torch.no_grad():
-            out = self.model.generate(  # type: ignore[attr-defined]
-                input_ids,
-                max_new_tokens=self.max_new_tokens,
-                do_sample=False,
-                pad_token_id=self.tokenizer.eos_token_id,  # type: ignore[attr-defined]
-            )
-        # Decode only the newly generated tokens.
-        new_tokens = out[0, input_ids.shape[1]:]
-        return self.tokenizer.decode(new_tokens, skip_special_tokens=True)  # type: ignore[attr-defined]
-
-    def get_hidden(self, input_ids: torch.Tensor, layer: int = -1, **kwargs) -> torch.Tensor:
-        out = self.model(  # type: ignore[attr-defined]
-            input_ids.to(self.device),
-            output_hidden_states=True,
-            **kwargs,
-        )
-        return out.hidden_states[layer]
+# InfiniEvalWrapper moved to src.models.eval_adapter.TextEvalAdapter
 
 
 # ---------------------------------------------------------------------------
@@ -159,41 +110,21 @@ def main(args: argparse.Namespace) -> None:
 
     model.eval()
 
-    eval_model = InfiniEvalWrapper(
+    from src.models.eval_adapter import TextEvalAdapter
+    from src.models.infini_attention import reset_infini_memory
+
+    eval_model = TextEvalAdapter(
         model=model,
         tokenizer=tokenizer._tok,  # type: ignore[attr-defined]
         device=device,
+        max_new_tokens=50,
+        pre_generate_hook=reset_infini_memory,
     )
 
     # --- Build benchmark suite ---
-    from src.eval.benchmarks.memory import AssociativeRecall, PasskeyRetrieval, VariableTracking
-    from src.eval.benchmarks.computation import (
-        DyckLanguage,
-        ModularArithmetic,
-        MultiDigitArithmetic,
-    )
-    from src.eval.benchmarks.emergent import (
-        CompositionalGeneralization,
-        LengthExtrapolation,
-    )
+    from src.eval.benchmarks.suite import build_benchmark_suite
 
-    n = args.num_examples
-    benchmarks = [
-        # Memory (primary)
-        PasskeyRetrieval(n=n, context_length=100, seed=args.seed),
-        PasskeyRetrieval(n=n, context_length=500, seed=args.seed + 1),
-        VariableTracking(n=n, num_variables=3, num_operations=5, seed=args.seed),
-        VariableTracking(n=n, num_variables=5, num_operations=10, seed=args.seed + 1),
-        AssociativeRecall(n=n, num_pairs=5, seed=args.seed),
-        AssociativeRecall(n=n, num_pairs=10, seed=args.seed + 1),
-        # Computation
-        MultiDigitArithmetic(n=n, num_digits=3, seed=args.seed),
-        ModularArithmetic(n=n, modulus=97, seed=args.seed),
-        DyckLanguage(n=n, max_depth=5, seed=args.seed),
-        # Generalisation
-        CompositionalGeneralization(n=n, seed=args.seed),
-        LengthExtrapolation(n=n, seed=args.seed),
-    ]
+    benchmarks = build_benchmark_suite(n=args.num_examples)
 
     from src.eval.harness import EvalConfig, evaluate
 

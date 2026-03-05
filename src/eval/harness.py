@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import math
 import subprocess
 import time
@@ -264,6 +265,11 @@ def evaluate(
             if metric == "perplexity":
                 # Perplexity requires per-token log-probs from model.forward;
                 # the harness exposes compute_perplexity() for callers that have them.
+                logging.getLogger(__name__).warning(
+                    "Skipping perplexity metric for task %r — "
+                    "compute it via compute_perplexity() with model.forward log-probs.",
+                    task_name,
+                )
                 continue
             value = _aggregate_metric(metric, predictions, targets)
             all_results.append(

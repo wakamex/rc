@@ -4,19 +4,19 @@ from __future__ import annotations
 
 import itertools
 import random
+import warnings
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from enum import IntEnum
 from typing import Any
 
-from src.eval.benchmarks.computation import (
+from src.eval.benchmarks.computation import (  # noqa: I001
     DyckLanguage,
     ModularArithmetic,
     MultiDigitArithmetic,
     ProgramTrace,
 )
 from src.types import DataPipeline
-
 
 # ---------------------------------------------------------------------------
 # Stage identifiers
@@ -166,23 +166,28 @@ def _fineweb_stream(config: CurriculumConfig) -> Iterator[str]:
     """Stream text from a HuggingFace dataset. Falls back to synthetic on import error."""
     try:
         from datasets import load_dataset  # type: ignore[import]
-
-        kwargs: dict[str, Any] = {
-            "split": config.text_corpus_split,
-            "streaming": True,
-        }
-        if config.text_corpus_name is not None:
-            kwargs["name"] = config.text_corpus_name
-
-        ds = load_dataset(config.text_corpus, **kwargs)
-        for item in ds:
-            text = item.get(config.text_column, "")
-            if text:
-                yield text
-    except Exception:
-        # Fallback: synthetic stream so pipeline is always usable without network
+    except ImportError:
+        warnings.warn(
+            "datasets package not installed — falling back to synthetic text stream. "
+            "Install with: pip install datasets",
+            stacklevel=2,
+        )
         rng = random.Random(0)
         yield from _synthetic_text_stream(rng)
+        return
+
+    kwargs: dict[str, Any] = {
+        "split": config.text_corpus_split,
+        "streaming": True,
+    }
+    if config.text_corpus_name is not None:
+        kwargs["name"] = config.text_corpus_name
+
+    ds = load_dataset(config.text_corpus, **kwargs)
+    for item in ds:
+        text = item.get(config.text_column, "")
+        if text:
+            yield text
 
 
 # ---------------------------------------------------------------------------

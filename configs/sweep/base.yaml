@@ -1,7 +1,7 @@
 model_name: qwen3.5-0.8b
 dtype: bfloat16
 device: cuda
-reservoir_size: 2000
+reservoir_size: 10000
 spectral_radius: 0.9
 leak_rate: 0.5
 topology: erdos_renyi
@@ -20,8 +20,8 @@ gradient_checkpointing: true
 seed: 42
 dataset_name: HuggingFaceFW/fineweb
 dataset_config: sample-10BT
-output_dir: checkpoints/track_a/sweep/size_2000
-results_file: results/track_a/sweep/size_2000/train_metrics.json
+output_dir: checkpoints/track_a/sweep/{name}
+results_file: results/track_a/sweep/{name}/train_metrics.json
 log_interval: 50
 save_interval: 1000
 sidecar_layers: null
@@ -35,8 +35,4 @@ lora_targets:
 - v_proj
 no_wandb: false
 wandb_project: lrs-track-a
-wandb_run_name: sweep/size_2000
-_sweep_dimension: size
-_sweep_param: reservoir_size
-_sweep_value: 2000
-_run_id: 1
+wandb_run_name: sweep/{name}

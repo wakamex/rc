@@ -35,23 +35,9 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 from src.data.chaos import generate_trajectory, lyapunov_time, split_trajectory  # noqa: E402
-from src.eval.benchmarks.computation import (  # noqa: E402
-    DyckLanguage,
-    ModularArithmetic,
-    MultiDigitArithmetic,
-    ProgramTrace,
-)
-from src.eval.benchmarks.emergent import (  # noqa: E402
-    AlgorithmicTransfer,
-    CompositionalGeneralization,
-    LengthExtrapolation,
-)
-from src.eval.benchmarks.memory import (  # noqa: E402
-    AssociativeRecall,
-    PasskeyRetrieval,
-    VariableTracking,
-)
+from src.eval.benchmarks.suite import build_benchmark_suite  # noqa: E402
 from src.eval.harness import EvalConfig, evaluate  # noqa: E402
+from src.models.eval_adapter import TextEvalAdapter  # noqa: E402
 from src.models.loader import load_model  # noqa: E402
 from src.types import EvalResult  # noqa: E402
 
@@ -60,98 +46,9 @@ from src.types import EvalResult  # noqa: E402
 # ---------------------------------------------------------------------------
 DEFAULT_OUTPUT = str(_REPO_ROOT / "results" / "baselines" / "qwen35_vanilla.json")
 
-# ---------------------------------------------------------------------------
-# String-level model adapter
-# ---------------------------------------------------------------------------
-
-
-class QwenEvalAdapter:
-    """Wraps ModelWrapperImpl to accept / return plain strings for the harness."""
-
-    def __init__(self, wrapper: Any, max_new_tokens: int = 64) -> None:
-        self._wrapper = wrapper
-        self._tok = wrapper.tokenizer
-        self.max_new_tokens = max_new_tokens
-        # Latency tracking
-        self._latencies: list[float] = []
-
-    # -- ModelWrapper protocol ------------------------------------------------
-
-    def forward(self, input_ids: Any, **kwargs: Any) -> Any:
-        return self._wrapper.forward(input_ids, **kwargs)
-
-    def generate(self, prompt: Any, **kwargs: Any) -> str:
-        """Accept a string prompt, return a string continuation."""
-        kwargs.pop("seed", None)
-
-        t0 = time.perf_counter()
-        input_ids = self._tok.encode(str(prompt), padding=False, truncation=True, max_length=1024)
-        input_ids = input_ids.to(self._wrapper.device)
-
-        with torch.no_grad():
-            output_ids = self._wrapper.model.generate(
-                input_ids,
-                max_new_tokens=self.max_new_tokens,
-                pad_token_id=self._tok.eos_token_id,
-                **kwargs,
-            )
-
-        elapsed = time.perf_counter() - t0
-        self._latencies.append(elapsed)
-
-        # Decode only the newly generated tokens
-        new_ids = output_ids[0, input_ids.shape[-1]:]
-        return self._tok.decode(new_ids)
-
-    def get_hidden(self, input_ids: Any, layer: int = -1, **kwargs: Any) -> Any:
-        return self._wrapper.get_hidden(input_ids, layer=layer, **kwargs)
-
-    def latency_stats(self) -> dict[str, float]:
-        """Return p50 and p95 latency in seconds."""
-        if not self._latencies:
-            return {"p50_s": 0.0, "p95_s": 0.0}
-        arr = sorted(self._latencies)
-        n = len(arr)
-        p50 = arr[int(n * 0.50)]
-        p95 = arr[min(int(n * 0.95), n - 1)]
-        return {"p50_s": p50, "p95_s": p95}
-
-
-# ---------------------------------------------------------------------------
-# Benchmark suite (matches T5 generators, same as LLaMA baseline)
-# ---------------------------------------------------------------------------
-
-
-def build_benchmarks(n: int = 200) -> list:
-    """Return the full benchmark suite used across all baseline evaluations."""
-    return [
-        # Memory benchmarks
-        PasskeyRetrieval(n=n, context_length=200, seed=42),
-        PasskeyRetrieval(n=n, context_length=500, seed=43),
-        VariableTracking(n=n, num_variables=3, num_operations=5, seed=42),
-        VariableTracking(n=n, num_variables=5, num_operations=10, seed=43),
-        AssociativeRecall(n=n, num_pairs=5, delay_length=30, seed=42),
-        AssociativeRecall(n=n, num_pairs=10, delay_length=50, seed=43),
-        # Computation benchmarks
-        MultiDigitArithmetic(n=n, digit_count=3, operation="addition", seed=42),
-        MultiDigitArithmetic(n=n, digit_count=4, operation="addition", seed=43),
-        MultiDigitArithmetic(n=n, digit_count=3, operation="multiplication", seed=44),
-        ModularArithmetic(n=n, modulus=97, seed=42),
-        DyckLanguage(n=n, max_depth=3, bracket_types=1, seed=42),
-        DyckLanguage(n=n, max_depth=4, bracket_types=2, seed=43),
-        ProgramTrace(n=n, num_steps=4, num_vars=3, seed=42),
-        ProgramTrace(n=n, num_steps=6, num_vars=3, seed=43),
-        # Emergent benchmarks
-        CompositionalGeneralization(n=n, split="train", seed=42),
-        CompositionalGeneralization(n=n, split="test", seed=43),
-        LengthExtrapolation(n=n, train_length=5, test_multiplier=1.0, seed=42),
-        LengthExtrapolation(n=n, train_length=5, test_multiplier=2.0, seed=43),
-        LengthExtrapolation(n=n, train_length=5, test_multiplier=4.0, seed=44),
-        AlgorithmicTransfer(n=n, family="sorting", split="train", seed=42),
-        AlgorithmicTransfer(n=n, family="sorting", split="test", seed=43),
-        AlgorithmicTransfer(n=n, family="search", split="train", seed=42),
-        AlgorithmicTransfer(n=n, family="search", split="test", seed=43),
-    ]
+# QwenEvalAdapter and build_benchmarks moved to shared modules:
+# - src.models.eval_adapter.TextEvalAdapter
+# - src.eval.benchmarks.suite.build_benchmark_suite
 
 
 # ---------------------------------------------------------------------------
@@ -232,7 +129,7 @@ def _parse_trajectory_text(text: str, expected_len: int) -> np.ndarray | None:
 
 
 def evaluate_chaos_prediction(
-    model_adapter: QwenEvalAdapter,
+    model_adapter: TextEvalAdapter,
     system: str = "lorenz63",
     n_sequences: int = 20,
     context_steps: int = 50,
@@ -467,7 +364,7 @@ def main() -> None:
     if device.type == "cuda":
         torch.cuda.reset_peak_memory_stats(device)
 
-    model_adapter = QwenEvalAdapter(wrapper, max_new_tokens=args.max_new_tokens)
+    model_adapter = TextEvalAdapter(wrapper, max_new_tokens=args.max_new_tokens)
 
     # --- Perplexity on held-out text ---
     print("Computing perplexity on sample texts…")
@@ -475,7 +372,7 @@ def main() -> None:
     print(f"  Perplexity: {perplexity:.2f}")
 
     # --- Main benchmark suite ---
-    benchmarks = build_benchmarks(n=args.n_examples)
+    benchmarks = build_benchmark_suite(n=args.n_examples)
     Path(args.output).parent.mkdir(parents=True, exist_ok=True)
 
     config = EvalConfig(
