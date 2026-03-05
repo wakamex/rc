@@ -1,0 +1,81 @@
+# T17: LLaMA-3.2-1B + ESN reservoir (read-only cross-attention sidecar)
+# Control experiment for the DeltaNet synergy hypothesis.
+#
+# All hyperparameters below are IDENTICAL to T14 (Qwen3.5-0.8B + reservoir)
+# except for model_name so that T17 - T10 is a valid comparison to T14 - T7.
+#
+# Key metric:
+#   Δ_Qwen  = T14 − T7   (Qwen + reservoir vs Qwen vanilla)
+#   Δ_LLaMA = T17 − T10  (LLaMA + reservoir vs LLaMA vanilla)
+#   Δ_Qwen >> Δ_LLaMA  →  DeltaNet synergy confirmed
+#   Δ_Qwen ≈  Δ_LLaMA  →  reservoir benefit is architecture-agnostic
+
+# ---------------------------------------------------------------------------
+# Base model
+# ---------------------------------------------------------------------------
+model_name: "llama-3.2-1b"      # pure softmax attention (no DeltaNet)
+dtype: "bfloat16"
+
+# ---------------------------------------------------------------------------
+# ESN reservoir (same config as T14)
+# ---------------------------------------------------------------------------
+reservoir_size: 1000             # number of reservoir neurons
+spectral_radius: 0.9             # echo state property threshold
+leak_rate: 0.3                   # leaky integration rate α
+input_scaling: 1.0               # W_in scale factor
+reservoir_topology: "erdos_renyi"
+reservoir_sparsity: 0.01         # connection density
+reservoir_input_dim: 128         # first N dims of token embedding as reservoir input
+reservoir_seed: 42
+
+# ---------------------------------------------------------------------------
+# CrossAttentionSidecar (same config as T14)
+# ---------------------------------------------------------------------------
+sidecar_num_heads: 8             # cross-attention heads (2048/8 = 256 head_dim)
+# sidecar_layer_indices: null    # null → every 4th layer [3, 7, 11, 15]
+sidecar_dropout: 0.0
+
+# ---------------------------------------------------------------------------
+# LoRA (same as T14)
+# ---------------------------------------------------------------------------
+lora_rank: 16
+lora_alpha: 32.0
+lora_dropout: 0.05
+
+# ---------------------------------------------------------------------------
+# Optimiser / schedule (same as T14)
+# ---------------------------------------------------------------------------
+lr: 2.0e-4                       # learning rate for LoRA parameters
+sidecar_lr: 1.0e-3               # learning rate for CrossAttentionSidecar params
+weight_decay: 0.01
+warmup_steps: 100
+max_steps: 5000
+batch_size: 4
+grad_accum: 4                    # effective batch = batch_size × grad_accum = 16
+max_seq_length: 2048
+gradient_checkpointing: true
+seed: 42
+
+# ---------------------------------------------------------------------------
+# Dataset mixing (same fine-tuning mix as T14)
+# Ratios map to a 60/30/10 split of FineWeb / synthetic tasks / chaotic data.
+# ---------------------------------------------------------------------------
+dataset_name: "HuggingFaceFW/fineweb"
+dataset_config: "sample-10BT"
+
+# ---------------------------------------------------------------------------
+# Logging / checkpointing
+# ---------------------------------------------------------------------------
+output_dir: "checkpoints/llama_reservoir"
+results_output: "results/track_a/llama_reservoir.json"
+log_interval: 50
+save_interval: 1000
+no_wandb: false
+wandb_project: "lrs-track-a"
+wandb_run_name: "t17-llama-reservoir"
+
+# ---------------------------------------------------------------------------
+# Evaluation (identical benchmark suite to T10 for direct comparison)
+# ---------------------------------------------------------------------------
+skip_eval: false
+n_eval_examples: 200             # must match T10 / T14 for direct Δ computation
