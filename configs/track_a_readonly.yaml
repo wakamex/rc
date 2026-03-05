@@ -1,0 +1,83 @@
+# Track A Read-Only Sidecar — training configuration
+# Used by scripts/train_track_a_readonly.py
+#
+# Architecture: Frozen Qwen3.5-0.8B-Base + LoRA + ESN read-only reservoir sidecar
+# No WriteHead: reservoir is driven by input embeddings only (LLM cannot write to it).
+
+# ---------------------------------------------------------------------------
+# Model
+# ---------------------------------------------------------------------------
+model_name: "qwen3.5-0.8b"
+dtype: "bfloat16"
+device: "cuda"
+
+# ---------------------------------------------------------------------------
+# ESN reservoir (read-only: no WriteHead)
+# ---------------------------------------------------------------------------
+reservoir_size: 10000          # number of reservoir nodes
+spectral_radius: 0.9           # controls echo state property (< 1 for stability)
+leak_rate: 0.5                 # leaky integration rate (0=slow memory, 1=no memory)
+input_scaling: 1.0             # input weight scaling
+reservoir_sparsity: 0.01       # fraction of non-zero reservoir weights
+reservoir_seed: 42
+
+# ---------------------------------------------------------------------------
+# Sidecar injection
+# ---------------------------------------------------------------------------
+# sidecar_layers: null → defaults to every 4th layer (3, 7, 11, ...)
+sidecar_layers: null
+num_heads: 8                   # CrossAttentionSidecar attention heads
+sidecar_dropout: 0.0
+
+# ---------------------------------------------------------------------------
+# LoRA adapter settings
+# ---------------------------------------------------------------------------
+lora_rank: 16                  # LoRA rank r (starting point per task spec)
+lora_alpha: 32.0               # LoRA scaling (typically 2× rank)
+lora_dropout: 0.05
+lora_targets:                  # Q/V projections only (Track A spec)
+  - q_proj
+  - v_proj
+
+# ---------------------------------------------------------------------------
+# Optimizer
+# ---------------------------------------------------------------------------
+lr: 2.0e-4                     # LoRA adapter learning rate
+interface_lr: 1.0e-3           # sidecar (ReadProjection + CrossAttentionSidecar) LR
+weight_decay: 0.01
+
+# ---------------------------------------------------------------------------
+# LR schedule: cosine decay with linear warmup
+# ---------------------------------------------------------------------------
+warmup_steps: 100
+max_steps: 5000                # ~500M tokens at batch_size=4 × grad_accum=4 × seq_len=2048
+
+# ---------------------------------------------------------------------------
+# Training loop
+# ---------------------------------------------------------------------------
+batch_size: 4
+grad_accum: 4                  # effective batch = 4 × 4 = 16
+max_seq_length: 2048
+gradient_checkpointing: true
+seed: 42
+
+# ---------------------------------------------------------------------------
+# Data: FineWeb subset (general text)
+# ---------------------------------------------------------------------------
+dataset_name: "HuggingFaceFW/fineweb"
+dataset_config: "sample-10BT"
+
+# ---------------------------------------------------------------------------
+# Output
+# ---------------------------------------------------------------------------
+output_dir: "checkpoints/track_a_readonly"
+results_file: "results/track_a/readonly.json"
+log_interval: 50
+save_interval: 1000
+
+# ---------------------------------------------------------------------------
+# Weights & Biases (optional)
+# ---------------------------------------------------------------------------
+no_wandb: false
+wandb_project: "lrs-track-a"
+wandb_run_name: "track-a-readonly-qwen3.5-0.8b"
