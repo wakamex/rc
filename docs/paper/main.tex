@@ -1,0 +1,576 @@
+\documentclass[11pt,a4paper]{article}
+
+% ---------------------------------------------------------------------------
+% Packages
+% ---------------------------------------------------------------------------
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{natbib}
+\usepackage{subcaption}
+\usepackage{multirow}
+\usepackage{url}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  citecolor=blue,
+  urlcolor=blue,
+}
+
+% ---------------------------------------------------------------------------
+% Title block
+% ---------------------------------------------------------------------------
+\title{%
+  \textbf{Latent Reservoir Scratchpads for LLMs:}\\
+  \large Bidirectional Echo State Networks as External Working Memory\\
+  and Cheap Latent Reasoning Substrates
+}
+
+\author{%
+  Anonymous Authors
+}
+
+\date{March 2026}
+
+% ---------------------------------------------------------------------------
+% Macros
+% ---------------------------------------------------------------------------
+\newcommand{\LRS}{\textsc{LRS}}
+\newcommand{\ESN}{\textsc{ESN}}
+\newcommand{\RIL}{\textsc{RIL}}
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+
+% ===========================================================================
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Large Language Models (LLMs) suffer from two fundamental limitations in
+long-horizon tasks: (i) the KV-cache grows linearly with context length, and
+(ii) multi-step symbolic reasoning requires recirculating hidden states through
+full forward passes.  We propose the \textbf{Latent Reservoir Scratchpad
+(\LRS)}: a fixed-size Echo State Network (ESN) integrated into a Transformer
+as an external, bidirectional working memory.  The reservoir state $r_t \in
+\mathbb{R}^{D_r}$ evolves at each token step via a cheap sparse
+matrix-vector multiply; only the read/write \emph{interface} parameters are
+trained.  We evaluate \LRS\ across three integration depths---bolt-on sidecar
+(Track~A), surgically inserted layers (Track~B), and from-scratch hybrid
+architecture (Track~C, RW-Transformer)---against compute-matched baselines
+including YaRN context extension, Mamba-2, Infini-attention, and Titans.
+
+\noindent\textbf{Negative-result statement.} In accordance with our
+pre-registered proposal, we report all gate outcomes here regardless of
+direction.  Gate~A (bolt-on sidecar) results are pending GPU evaluation; this
+paper documents the codebase, methodology, and preliminary CPU-scale
+experiments.  We commit to updating the paper with empirical results upon
+completion of GPU training runs.
+\end{abstract}
+
+% ---------------------------------------------------------------------------
+\section{Introduction}
+\label{sec:intro}
+% ---------------------------------------------------------------------------
+
+Standard Transformer architectures \citep{vaswani2017attention} encode all
+context in the KV-cache, which grows as $O(L \cdot d)$ with sequence length
+$L$.  While efficient attention variants
+\citep{dao2022flashattention,munkhdalai2024infini} partially address this
+cost, they remain fundamentally bounded by the sequence length.  Recurrent
+models such as Mamba \citep{gu2023mamba} maintain an $O(1)$ state but lack
+precise content-addressable retrieval.
+
+A complementary line of work, \emph{latent reasoning}, proposes recirculating
+hidden states through the LLM's own forward pass as a reasoning substrate
+\citep{hao2024coconut,geiping2025huginn}.  This gives additional ``thinking
+time'' but at full-forward-pass cost per reasoning step and with potential
+distributional drift since the LLM's embedding space was not designed for
+recirculation.
+
+\textbf{Our contribution.} We introduce the Latent Reservoir Scratchpad
+(\LRS), which decouples the working memory substrate from the LLM.  A
+fixed-weight Echo State Network \citep{jaeger2001echo} serves as:
+\begin{enumerate}
+  \item A \emph{fixed-size} continuous-state memory buffer with $O(1)$ memory
+    footprint regardless of sequence length.
+  \item A \emph{cheap latent reasoning substrate}: the reservoir can evolve
+    for $K$ sub-steps between tokens via single sparse matrix-vector
+    multiplies, providing thinking time at $\ll 1\%$ the cost of LLM forward
+    passes.
+\end{enumerate}
+Only the read/write interface parameters (projections and optional LoRA
+adapters) are trained; the reservoir weights $W_{\mathrm{res}}$ remain frozen,
+providing bounded-state compression with guaranteed echo state property.
+
+We further explore the \textbf{DeltaNet synergy hypothesis}: Qwen3.5's Gated
+DeltaNet layers \citep{yang2024gated} use a delta-rule hidden state update
+analogous to ESN recurrence, potentially reducing distributional mismatch when
+the LLM reads reservoir states.
+
+\paragraph{Negative-result commitment.}  As pre-registered in our
+collaborative research proposal, we commit to publishing detailed findings
+regardless of gate outcomes.  If any success gate fails, Section~\ref{sec:results}
+documents the failure mode and analysis.
+
+% ---------------------------------------------------------------------------
+\section{Related Work}
+\label{sec:related}
+% ---------------------------------------------------------------------------
+
+\subsection{Reservoir Computing}
+
+Echo State Networks \citep{jaeger2001echo,jaeger2004harnessing} are recurrent
+networks where only the output (readout) layer is trained; the reservoir
+weights are fixed random sparse matrices with spectral radius near 1.
+\citet{shen2021reservoir} inserted reservoir states into Transformers as
+``Reservoir Transformers,'' finding modest gains on language modelling.
+\citet{koester2025reservoir} demonstrated reservoir computing as a standalone
+language model at small scale. The echo state property---that the reservoir
+state depends only on recent inputs, not on the initial state---provides a
+mathematical foundation for bounded memory.
+
+\subsection{Memory Augmentation}
+
+Infini-attention \citep{munkhdalai2024infini} and Titans
+\citep{behrouz2025titans} augment Transformer layers with compressive
+associative memory matrices.  Infini-attention maintains a per-layer
+associative matrix updated with each segment; Titans introduces meta-learned
+updates at test time.  Both require $O(d^2)$ memory per layer and $O(L \cdot
+d^2)$ updates.  In contrast, \LRS\ maintains a \emph{single} reservoir state
+of dimension $D_r$ with $O(D_r)$ memory and $O(D_r^2 / \rho_s)$ per-step
+compute where $\rho_s \ll 1$ is reservoir sparsity.
+
+\subsection{Latent Reasoning}
+
+Coconut \citep{hao2024coconut} trains LLMs to reason by recirculating
+continuous hidden states rather than discrete tokens.  Huginn
+\citep{geiping2025huginn} loops a Transformer block for depth-adaptive
+computation.  Ouro \citep{srivastava2025ouro} uses looped Transformers as
+latent reasoning machines.  All three pay full forward-pass cost per
+reasoning step.  Our reservoir sub-steps cost $O(D_r^2 \cdot \rho_s)$ per
+step---orders of magnitude cheaper---while operating in a space $D_r \gg
+d_{\mathrm{LLM}}$ for rich dynamics.
+
+\subsection{Long-Context Transformers}
+
+YaRN \citep{peng2023yarn} extends RoPE positional encodings to longer
+contexts.  Mamba-2 \citep{gu2023mamba,dao2024transformers} replaces attention
+with structured state-space layers for $O(L)$ sequence processing.  Our
+evaluation includes both as baselines (Track A, Controls 1 and 2).
+
+% ---------------------------------------------------------------------------
+\section{Method}
+\label{sec:method}
+% ---------------------------------------------------------------------------
+
+\subsection{Echo State Network Reservoir}
+\label{sec:esn}
+
+A reservoir is a high-dimensional dynamical system defined by:
+\begin{equation}
+  r_t = (1 - \alpha)\, r_{t-1}
+        + \alpha\, \tanh\!\bigl(W_{\mathrm{res}}\, r_{t-1}
+                                + W_{\mathrm{in}}\, x_t
+                                + w_t\bigr)
+  \label{eq:esn}
+\end{equation}
+where $r_t \in \mathbb{R}^{D_r}$ is the reservoir state, $\alpha \in (0,1]$
+is the leak rate, $W_{\mathrm{res}} \in \mathbb{R}^{D_r \times D_r}$ is a
+sparse random matrix with spectral radius $\rho < 1$ (Erdős–Rényi or
+Watts-Strogatz topology), $W_{\mathrm{in}} \in \mathbb{R}^{D_r \times d}$ is
+a fixed random input projection, and $w_t$ is the LLM's write signal.  All of
+$W_{\mathrm{res}}$, $W_{\mathrm{in}}$ are fixed after initialisation---they
+are never trained.
+
+\subsection{Read/Write Interface}
+\label{sec:interface}
+
+The trainable interface consists of:
+\begin{itemize}
+  \item \textbf{WriteHead}: $w_t = \mathrm{Linear}(h_t) \in \mathbb{R}^{D_r}$,
+    where $h_t$ is the LLM hidden state at the chosen insertion layer.
+  \item \textbf{ReadProjection}: $m_t = \mathrm{Linear}(r_t) \in
+    \mathbb{R}^{d_{\mathrm{LLM}}}$, mapping reservoir state back to LLM
+    dimension.
+  \item \textbf{CrossAttentionSidecar} (optional): LLM hidden $h$ as queries,
+    reservoir states as keys/values.  Multi-head, with $Q$-norm for stability.
+  \item \textbf{FiLM Modulation} (optional): gated feature-wise linear
+    modulation of hidden states by reservoir state.
+\end{itemize}
+
+Gradient stops at the numpy/torch boundary: reservoir weights receive no
+gradient signal.  Only interface parameters (and optional LoRA adapters) are
+updated during training.
+
+\subsection{Track A: Bolt-On Reservoir Sidecar}
+\label{sec:track_a}
+
+Track~A attaches a single ESN to a frozen Qwen3.5-0.8B-Base model.  Training
+progresses in two phases:
+\begin{enumerate}
+  \item \textbf{Read-only}: Only ReadProjection is trained; WriteHead is
+    bypassed ($w_t = 0$).  The reservoir evolves from $x_t = h_t$
+    (last-layer hidden states) as input.  This validates that the LLM can
+    extract useful information from reservoir states before learning to write
+    to them.
+  \item \textbf{Read/Write}: Both ReadProjection and WriteHead are trained.
+    LoRA adapters (rank 16) are added to $\{q, k, v, o, \text{gate},
+    \text{up}, \text{down}\}$ projections.
+\end{enumerate}
+Integration uses CrossAttentionSidecar, with reservoir states as K/V memory.
+A hyperparameter sweep (Track A, T16) searches over reservoir size
+$D_r \in \{500, 2000, 10000, 50000\}$, leak rate $\alpha \in \{0.1, 0.3,
+0.7, 1.0\}$, spectral radius $\rho \in \{0.5, 0.9, 0.99, 1.1\}$, and
+topology $\in \{\text{Erdős–Rényi}, \text{Watts-Strogatz}\}$.
+
+\subsection{Track B: Reservoir Interaction Layers (RIL)}
+\label{sec:track_b}
+
+Track~B surgically inserts the \LRS\ into mid-to-late Transformer layers
+(replacing selected Gated DeltaNet blocks in Qwen3.5).  A dual-timescale
+multi-reservoir is introduced:
+\begin{itemize}
+  \item \textbf{Fast reservoir}: $\alpha_{\mathrm{fast}} \approx 0.9$,
+    $\rho_{\mathrm{fast}} \approx 0.9$---short memory, responsive to recent
+    tokens.
+  \item \textbf{Slow reservoir}: $\alpha_{\mathrm{slow}} \approx 0.1$,
+    $\rho_{\mathrm{slow}} \approx 0.5$---long memory, integrates context.
+\end{itemize}
+The combined read state $[r_{\mathrm{fast}}; r_{\mathrm{slow}}]$ is passed to
+the cross-attention sidecar.  The DeltaNet synergy hypothesis predicts lower
+perplexity degradation for Qwen3.5 (with DeltaNet layers) than for LLaMA-3.2
+(pure softmax attention) when both are augmented identically.
+
+\subsection{Track C: RW-Transformer (From-Scratch Hybrid)}
+\label{sec:track_c}
+
+Track~C trains a new $\sim$0.8B parameter model from scratch.  Each decoder
+block contains three parallel branches fused by a learned gating layer:
+\begin{enumerate}
+  \item Local/global attention (exact pattern matching).
+  \item Standard MLP (static knowledge).
+  \item Dual multi-reservoir workspace (fast + slow ESN).
+\end{enumerate}
+The write path is optimised via straight-through estimators, and $K$-step
+latent reasoning is evaluated with $K \in \{1, 2, 4, 8, 16\}$ sub-steps
+between tokens.
+
+\subsection{Multi-Step Latent Reasoning}
+\label{sec:latent_reasoning}
+
+Between token generation steps, the reservoir evolves autonomously:
+\begin{equation}
+  r_t^{(k)} = (1 - \alpha)\, r_t^{(k-1)}
+             + \alpha\, \tanh\!\bigl(W_{\mathrm{res}}\, r_t^{(k-1)}\bigr),
+  \quad k = 1, \ldots, K
+  \label{eq:substep}
+\end{equation}
+with $r_t^{(0)}$ set after the write injection.  Each sub-step costs one
+sparse matrix-vector multiply---$O(\rho_s D_r^2)$ FLOPs vs.\
+$O(d_{\mathrm{LLM}}^2 L)$ for a full LLM forward pass.  The LLM reads
+$r_t^{(K)}$ instead of $r_t^{(0)}$, enabling cheap amortised reasoning.
+
+% ---------------------------------------------------------------------------
+\section{Experimental Setup}
+\label{sec:setup}
+% ---------------------------------------------------------------------------
+
+\subsection{Models}
+
+\begin{table}[h]
+\centering
+\caption{Models and configurations.}
+\label{tab:models}
+\begin{tabular}{@{}llll@{}}
+\toprule
+Label & Base Model & Memory Component & Training \\
+\midrule
+Control 1 & Qwen3.5-0.8B (frozen) & RoPE / YaRN & Zero \\
+Control 2 & Mamba-2 (1.3B) & Native SSM & Zero \\
+Control 3 & Qwen3.5-0.8B + LoRA & Infini-attention & Low \\
+Track A-ro & Qwen3.5-0.8B + LoRA & ESN sidecar (read-only) & Low \\
+Track A-rw & Qwen3.5-0.8B + LoRA & ESN sidecar (read/write) & Low \\
+Track A-sweep & Qwen3.5-0.8B + LoRA & Best HP from T16 & Low \\
+Arch Control & LLaMA-3.2-1B + LoRA & ESN sidecar & Low \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+All Track A/Arch Control models use LoRA rank 16 ($\alpha=32$) on
+$\{q, k, v, o, \text{gate}, \text{up}, \text{down}\}$ projections plus
+the read/write interface parameters.  CPU-only training uses float32;
+GPU training uses bfloat16 with gradient checkpointing.
+
+\subsection{Benchmarks}
+\label{sec:benchmarks}
+
+\paragraph{Passkey Retrieval.}
+Synthetic long-context task: a ``passkey'' (5-digit number) is buried in
+random text; the model must retrieve it.  Evaluated at context lengths
+$\{1k, 2k, 4k, 8k, 16k, 32k\}$ tokens.  Metric: exact-match accuracy.
+
+\paragraph{Variable Tracking.}
+A sequence of variable assignments and updates is presented; the model must
+report the final value of a queried variable.  Evaluates algorithmic
+working memory.
+
+\paragraph{Associative Recall.}
+Key-value pairs are presented in a list, followed by a query for one key.
+The model must return the correct value.  Tests content-addressable retrieval.
+
+\paragraph{Compositional Generalization.}
+Held-out combinations of operator types and argument lengths, testing
+whether the model generalises beyond its training distribution.
+
+\paragraph{Chaos Diagnostics.}
+Small-scale chaotic system forecasting (Lorenz attractor) as a representation
+diagnostic.  Verifies that reservoir states exhibit stable bounded dynamics.
+
+\paragraph{Perplexity.}
+FineWeb held-out text perplexity, measuring language modelling degradation.
+
+\subsection{Training Details}
+
+Optimizer: AdamW with learning rate $2 \times 10^{-4}$ (LoRA) and $10^{-3}$
+(interface), weight decay $0.01$, gradient clip $1.0$.  Schedule: cosine
+decay with 100 warmup steps over 5000 total steps.  Batch size 4 with
+gradient accumulation $\times 4$ (effective batch 16).  Data: 60\% FineWeb,
+30\% synthetic task data, 10\% chaotic systems sequences.
+
+% ---------------------------------------------------------------------------
+\section{Results}
+\label{sec:results}
+% ---------------------------------------------------------------------------
+
+\subsection{Gate A Status}
+
+\begin{table}[h]
+\centering
+\caption{Gate A criteria and current status (all GPU runs pending).}
+\label{tab:gate_a}
+\begin{tabular}{@{}lllll@{}}
+\toprule
+\# & Criterion & Threshold & Best value & Result \\
+\midrule
+1 & Passkey retrieval gain & $\geq 10\%$ & Pending & \textbf{PENDING} \\
+2 & Algorithmic memory gain & $\geq 15\%$ & Pending & \textbf{PENDING} \\
+3 & Compositional gen.\ gain & $\geq 10\%$ & Pending & \textbf{PENDING} \\
+4 & Inference latency overhead & $\leq 20\%$ & Pending & \textbf{PENDING} \\
+5 & Perplexity degradation & $< 2\%$ & Pending & \textbf{PENDING} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+All Gate~A results require GPU training to complete.
+Table~\ref{tab:gate_a} will be updated with empirical results.
+Per our pre-registered negative-result commitment, if any gate criterion is
+not met, the paper will include a detailed failure analysis in
+Section~\ref{sec:discussion}.
+
+\subsection{Baseline Comparison}
+
+\begin{table}[h]
+\centering
+\caption{Full model comparison (values to be filled from GPU runs).}
+\label{tab:full_results}
+\begin{tabular}{@{}lrrrrr@{}}
+\toprule
+Model & Passkey $\uparrow$ & Algo Mem $\uparrow$ & Comp Gen $\uparrow$
+      & Latency $\downarrow$ & PPL $\downarrow$ \\
+\midrule
+Control 1 (Qwen+YaRN)  & --- & --- & --- & --- & --- \\
+Control 2 (Mamba-2)    & --- & --- & --- & --- & --- \\
+Control 3 (Infini-attn)& --- & --- & --- & --- & --- \\
+Track A read-only      & --- & --- & --- & --- & --- \\
+Track A read/write     & --- & --- & --- & --- & --- \\
+Track A best sweep     & --- & --- & --- & --- & --- \\
+Arch Control (LLaMA+RC)& --- & --- & --- & --- & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{HP Sweep Results (Track A)}
+
+Figure~\ref{fig:pareto} shows the quality-vs-efficiency Pareto frontier from
+the reservoir hyperparameter sweep (T16).  Table~\ref{tab:sweep_summary}
+summarises the effect of each hyperparameter.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.7\textwidth]{figures/pareto_frontier.pdf}
+\caption{Quality vs.\ inference latency overhead Pareto frontier for Track~A
+  reservoir hyperparameter sweep.  Each point is a configuration from
+  Table~\ref{tab:sweep_configs}.  Dashed lines mark the Gate~A thresholds.
+  \textit{(Requires GPU runs to populate.)}}
+\label{fig:pareto}
+\end{figure}
+
+\subsection{Ablation Analysis}
+\label{sec:ablations}
+
+Table~\ref{tab:ablations} summarises ablation results (from T29 scripts).
+Key ablations: (i) read-only vs.\ read/write, (ii) single vs.\ multi-reservoir,
+(iii) randomised/stateless control (verifies recurrent dynamics, not just
+additional parameters, drive gains), (iv) spectral radius regimes.
+
+\begin{table}[h]
+\centering
+\caption{Ablation summary. $\Delta$ values relative to full read/write model.}
+\label{tab:ablations}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Ablation & $\Delta$ Passkey & $\Delta$ Algo Mem & $\Delta$ PPL & Notes \\
+\midrule
+Read-only (no write) & --- & --- & --- & Interface ablation \\
+Randomised state (no ESN dynamics) & --- & --- & --- & Control \\
+Single reservoir (fast only) & --- & --- & --- & Multi-res ablation \\
+Single reservoir (slow only) & --- & --- & --- & Multi-res ablation \\
+Spectral radius $\rho=0.5$ & --- & --- & --- & Stability regime \\
+Spectral radius $\rho=1.1$ & --- & --- & --- & Near-chaotic \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ---------------------------------------------------------------------------
+\section{Discussion}
+\label{sec:discussion}
+% ---------------------------------------------------------------------------
+
+\paragraph{DeltaNet synergy.}
+Qwen3.5's Gated DeltaNet blocks use a delta-rule update $\Delta h_t = \beta
+(\hat{v}_t - h_{t-1} \cdot \hat{k}_t^\top \hat{k}_t)$ analogous to the ESN
+leaky integration (Eq.~\ref{eq:esn}).  We hypothesise that this shared
+inductive bias reduces the distributional mismatch between LLM hidden states
+and ESN reservoir states, making the read/write interface easier to train.
+The Arch Control (LLaMA-3.2-1B + ESN, pure softmax attention) provides the
+counterfactual.  A larger $\Delta$ improvement for Qwen3.5 vs.\ LLaMA would
+support the DeltaNet synergy hypothesis.
+
+\paragraph{Latent reasoning cost analysis.}
+A single ESN sub-step (Eq.~\ref{eq:substep}) costs
+$O(\rho_s D_r^2)$ FLOPs where $\rho_s \approx 0.01$ is reservoir sparsity.
+For $D_r = 10{,}000$: $\sim 10^6$ FLOPs/step.  A Qwen3.5-0.8B forward pass
+costs $\sim 1.6 \times 10^9$ FLOPs.  Thus $K=16$ sub-steps cost $\sim 1\%$
+of a single LLM forward pass---making reservoir latent reasoning
+approximately $100\times$ cheaper per reasoning step than Coconut-style
+hidden-state recirculation.
+
+\paragraph{What worked.}
+[To be filled after GPU runs.]
+
+\paragraph{What did not work / failure analysis.}
+[To be filled after GPU runs.  Per our pre-registered commitment, if Gate~A
+criteria are not met, we document: (i) which criterion failed and by how much,
+(ii) diagnostic experiments to understand the failure, (iii) recommendations
+for future work.]
+
+\paragraph{Reservoir memory saturation.}
+At long context lengths ($L \gg 1/\alpha$), the reservoir state integrates all
+past inputs and may saturate.  The dual-timescale design (Track~B) partially
+addresses this: the fast reservoir refreshes quickly while the slow reservoir
+maintains long-range history.  For very long contexts ($L > 10^5$), periodic
+reservoir resets or explicit memory management may be needed.
+
+% ---------------------------------------------------------------------------
+\section{Conclusion}
+\label{sec:conclusion}
+% ---------------------------------------------------------------------------
+
+We have presented the Latent Reservoir Scratchpad (\LRS), an approach to
+augmenting LLMs with a fixed-size continuous-state working memory derived from
+Echo State Networks.  Key advantages are $O(1)$ memory footprint,
+interpretable dynamics (the reservoir weights are known and fixed), and
+extremely cheap latent reasoning sub-steps ($\sim 100\times$ cheaper than
+LLM-internal recirculation).
+
+The three-track evaluation program (bolt-on sidecar, inserted layers,
+from-scratch hybrid) with quantitative success gates and a pre-registered
+negative-result commitment provides a rigorous empirical foundation for
+assessing the viability of reservoir-augmented LLMs.  GPU evaluation results
+will be incorporated as they become available.
+
+Code, configs, and reproducibility instructions are available at
+\url{https://github.com/[repository-url]}.
+
+% ---------------------------------------------------------------------------
+\bibliography{references}
+\bibliographystyle{plainnat}
+% ---------------------------------------------------------------------------
+
+\appendix
+
+% ---------------------------------------------------------------------------
+\section{Hyperparameter Sweep Configurations}
+\label{app:sweep}
+% ---------------------------------------------------------------------------
+
+\begin{table}[h]
+\centering
+\caption{Reservoir HP sweep grid (T16). Best combo selected by Pareto
+  criterion: max passkey accuracy at $\leq 10\%$ latency overhead.}
+\label{tab:sweep_configs}
+\begin{tabular}{@{}lllll@{}}
+\toprule
+Config & $D_r$ & $\alpha$ & $\rho$ & Topology \\
+\midrule
+size-500 & 500 & 0.3 & 0.9 & erdos\_renyi \\
+size-2000 & 2000 & 0.3 & 0.9 & erdos\_renyi \\
+size-10000 & 10000 & 0.3 & 0.9 & erdos\_renyi \\
+size-50000 & 50000 & 0.3 & 0.9 & erdos\_renyi \\
+leak-0.1 & 1000 & 0.1 & 0.9 & erdos\_renyi \\
+leak-0.3 & 1000 & 0.3 & 0.9 & erdos\_renyi \\
+leak-0.7 & 1000 & 0.7 & 0.9 & erdos\_renyi \\
+leak-1.0 & 1000 & 1.0 & 0.9 & erdos\_renyi \\
+sr-0.5 & 1000 & 0.3 & 0.5 & erdos\_renyi \\
+sr-0.9 & 1000 & 0.3 & 0.9 & erdos\_renyi \\
+sr-0.99 & 1000 & 0.3 & 0.99 & erdos\_renyi \\
+sr-1.1 & 1000 & 0.3 & 1.1 & erdos\_renyi \\
+small-world & 1000 & 0.3 & 0.9 & small\_world \\
+best-combo & 2000 & 0.3 & 0.9 & small\_world \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ---------------------------------------------------------------------------
+\section{Architecture Diagrams}
+\label{app:arch}
+% ---------------------------------------------------------------------------
+
+Figures~\ref{fig:sidecar_arch}--\ref{fig:rw_transformer} illustrate the
+three integration depths.  These figures are generated by the scripts in
+\texttt{docs/paper/figures/}.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/architecture_sidecar.pdf}
+\caption{Track~A bolt-on reservoir sidecar.  Frozen LLM (left) passes hidden
+  states to the WriteHead; ESN state is projected back via ReadProjection and
+  injected as K/V in the CrossAttentionSidecar.}
+\label{fig:sidecar_arch}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/architecture_ril.pdf}
+\caption{Track~B Reservoir Interaction Layer (RIL).  Dual-timescale
+  multi-reservoir replaces selected DeltaNet blocks; FiLM modulation
+  injects reservoir state into residual stream.}
+\label{fig:ril_arch}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/architecture_rw_transformer.pdf}
+\caption{Track~C RW-Transformer decoder block.  Three parallel branches
+  (attention, MLP, dual-reservoir workspace) fused by a learned gating layer.}
+\label{fig:rw_transformer}
+\end{figure}
+
+\end{document}
