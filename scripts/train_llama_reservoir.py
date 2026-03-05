@@ -251,105 +251,8 @@ def run_reservoir_on_batch(
 # ---------------------------------------------------------------------------
 
 
-def build_dataloader(
-    tokenizer: Any,
-    dataset_name: str,
-    dataset_config: str,
-    max_seq_length: int,
-    batch_size: int,
-    seed: int = 42,
-) -> Any:
-    """Build a streaming HuggingFace DataLoader over a text dataset."""
-    from datasets import load_dataset  # type: ignore[import]
-    from torch.utils.data import DataLoader
-
-    ds = load_dataset(dataset_name, dataset_config, split="train", streaming=True)
-    ds = ds.shuffle(seed=seed, buffer_size=10_000)
-
-    def tokenize_and_chunk(example: dict) -> dict:
-        text = example.get("text", "")
-        ids = tokenizer(
-            text,
-            return_tensors="pt",
-            truncation=True,
-            max_length=max_seq_length,
-        )["input_ids"].squeeze(0)
-        return {"input_ids": ids}
-
-    # Remove FineWeb-specific columns; ignore missing ones silently.
-    fw_columns = ["text", "id", "dump", "url", "file_path", "language",
-                  "language_score", "token_count", "score", "int_score"]
-    ds = ds.map(tokenize_and_chunk, remove_columns=fw_columns)
-
-    def collate(batch: list[dict]) -> dict:
-        max_len = max(b["input_ids"].shape[0] for b in batch)
-        padded = torch.full((len(batch), max_len), fill_value=0, dtype=torch.long)
-        for i, b in enumerate(batch):
-            ids = b["input_ids"]
-            padded[i, : ids.shape[0]] = ids
-        labels = padded.clone()
-        labels[labels == 0] = -100  # ignore padding tokens in loss
-        return {"input_ids": padded, "labels": labels}
-
-    return DataLoader(ds, batch_size=batch_size, collate_fn=collate)
-
-
-# ---------------------------------------------------------------------------
-# Benchmark suite — identical to T10 (eval_llama.py) for direct comparison
-# ---------------------------------------------------------------------------
-
-
-def build_benchmarks(n: int = 200) -> list:
-    """Return the full benchmark suite used for T10 / T17 comparison.
-
-    This is identical to the suite in ``scripts/eval_llama.py`` (T10) so that
-    T17 - T10 gives a direct per-task measurement of the reservoir benefit.
-    """
-    from src.eval.benchmarks.computation import (
-        DyckLanguage,
-        ModularArithmetic,
-        MultiDigitArithmetic,
-        ProgramTrace,
-    )
-    from src.eval.benchmarks.emergent import (
-        AlgorithmicTransfer,
-        CompositionalGeneralization,
-        LengthExtrapolation,
-    )
-    from src.eval.benchmarks.memory import (
-        AssociativeRecall,
-        PasskeyRetrieval,
-        VariableTracking,
-    )
-
-    return [
-        # Memory benchmarks
-        PasskeyRetrieval(n=n, context_length=200, seed=42),
-        PasskeyRetrieval(n=n, context_length=500, seed=43),
-        VariableTracking(n=n, num_variables=3, num_operations=5, seed=42),
-        VariableTracking(n=n, num_variables=5, num_operations=10, seed=43),
-        AssociativeRecall(n=n, num_pairs=5, delay_length=30, seed=42),
-        AssociativeRecall(n=n, num_pairs=10, delay_length=50, seed=43),
-        # Computation benchmarks
-        MultiDigitArithmetic(n=n, digit_count=3, operation="addition", seed=42),
-        MultiDigitArithmetic(n=n, digit_count=4, operation="addition", seed=43),
-        MultiDigitArithmetic(n=n, digit_count=3, operation="multiplication", seed=44),
-        ModularArithmetic(n=n, modulus=97, seed=42),
-        DyckLanguage(n=n, max_depth=3, bracket_types=1, seed=42),
-        DyckLanguage(n=n, max_depth=4, bracket_types=2, seed=43),
-        ProgramTrace(n=n, num_steps=4, num_vars=3, seed=42),
-        ProgramTrace(n=n, num_steps=6, num_vars=3, seed=43),
-        # Emergent benchmarks
-        CompositionalGeneralization(n=n, split="train", seed=42),
-        CompositionalGeneralization(n=n, split="test", seed=43),
-        LengthExtrapolation(n=n, train_length=5, test_multiplier=1.0, seed=42),
-        LengthExtrapolation(n=n, train_length=5, test_multiplier=2.0, seed=43),
-        LengthExtrapolation(n=n, train_length=5, test_multiplier=4.0, seed=44),
-        AlgorithmicTransfer(n=n, family="sorting", split="train", seed=42),
-        AlgorithmicTransfer(n=n, family="sorting", split="test", seed=43),
-        AlgorithmicTransfer(n=n, family="search", split="train", seed=42),
-        AlgorithmicTransfer(n=n, family="search", split="test", seed=43),
-    ]
+from src.data.dataloader import build_dataloader
+from src.eval.benchmarks.suite import build_benchmark_suite
 
 
 # ---------------------------------------------------------------------------
@@ -769,7 +672,7 @@ def train(args: argparse.Namespace) -> None:
             max_new_tokens=64,
         )
 
-        benchmarks = build_benchmarks(n=args.n_eval_examples)
+        benchmarks = build_benchmark_suite(n=args.n_eval_examples)
         Path(args.results_output).parent.mkdir(parents=True, exist_ok=True)
 
         from src.eval.harness import EvalConfig, evaluate
