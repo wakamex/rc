@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "swarm/**"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install dev deps
+        run: pip install ruff mypy
+      - name: Ruff lint
+        run: ruff check src/ tests/
+      - name: Ruff format check
+        run: ruff format --check src/ tests/
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install package (CPU-only, no heavy deps)
+        run: pip install -e ".[dev]" --no-deps || pip install pytest
+      - name: Install minimal runtime deps
+        run: pip install scipy
+      - name: Run tests
+        run: pytest tests/ -v
