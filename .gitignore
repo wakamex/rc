@@ -15,3 +15,7 @@ build/
 .pytest_cache/
 .venv/
 .beads/
+
+# Training artifacts
+checkpoints/
+.swarm/

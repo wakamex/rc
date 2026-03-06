@@ -55,10 +55,10 @@ max_steps: 5000                # ~500M tokens at batch_size=4 × grad_accum=4 ×
 # ---------------------------------------------------------------------------
 # Training loop
 # ---------------------------------------------------------------------------
-batch_size: 4
-grad_accum: 4                  # effective batch = 4 × 4 = 16
+batch_size: 1                  # reduced from 4 to fit in 24GB without gradient checkpointing
+grad_accum: 16                 # effective batch = 1 × 16 = 16
 max_seq_length: 2048
-gradient_checkpointing: true
+gradient_checkpointing: false  # disabled: conflicts with sidecar forward hooks
 seed: 42
 
 # ---------------------------------------------------------------------------

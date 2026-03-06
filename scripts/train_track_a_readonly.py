@@ -87,7 +87,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--batch_size", type=int, default=4)
     p.add_argument("--grad_accum", type=int, default=4)
     p.add_argument("--max_seq_length", type=int, default=2048)
-    p.add_argument("--gradient_checkpointing", action="store_true", default=True)
+    p.add_argument("--gradient_checkpointing", action="store_true", default=False)
     p.add_argument("--seed", type=int, default=42)
 
     # Data
@@ -433,7 +433,12 @@ def train(args: argparse.Namespace) -> None:
     # --- Gradient checkpointing ---
     if args.gradient_checkpointing:
         if hasattr(model, "gradient_checkpointing_enable"):
-            model.gradient_checkpointing_enable()
+            # use_reentrant=False is required when forward hooks (sidecar) modify
+            # hidden states — reentrant checkpointing replays the forward without
+            # hooks, causing a tensor count mismatch.
+            model.gradient_checkpointing_enable(
+                gradient_checkpointing_kwargs={"use_reentrant": False}
+            )
 
     model.train()
     sidecar_bundle.train()
@@ -504,7 +509,7 @@ def train(args: argparse.Namespace) -> None:
         all_states = []
         for b in range(batch_size_actual):
             esn.reset()
-            emb_b = embeddings[b].float().cpu().numpy()  # (T, H)
+            emb_b = embeddings[b].detach().float().cpu().numpy()  # (T, H)
             states_b = np.zeros((emb_b.shape[0], esn.n), dtype=np.float32)
             for t in range(emb_b.shape[0]):
                 states_b[t] = esn.step(emb_b[t])
