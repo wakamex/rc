@@ -150,6 +150,7 @@ class CrossAttentionSidecar(nn.Module):
         num_heads: int = 8,
         dropout: float = 0.0,
         bias: bool = True,
+        gate_init: float = 0.0,
     ) -> None:
         super().__init__()
         if hidden_dim % num_heads != 0:
@@ -172,6 +173,12 @@ class CrossAttentionSidecar(nn.Module):
         self.out_proj = nn.Linear(hidden_dim, hidden_dim, bias=bias)
 
         self.dropout = nn.Dropout(dropout)
+
+        # Flamingo-style tanh gate (Alayrac et al. NeurIPS 2022).
+        # alpha=0 → tanh(0)=0 (identity at init, no noise injection).
+        # tanh'(0)=1 → perfect gradient flow from step 1.
+        # tanh bounds output to [-1,1] → prevents explosion.
+        self.gate_alpha = nn.Parameter(torch.tensor([gate_init]))
 
         # Post-norm for residual connection
         self.out_norm = nn.LayerNorm(hidden_dim)
@@ -230,9 +237,11 @@ class CrossAttentionSidecar(nn.Module):
         # Merge heads → (B, T, H) and project
         out = out.transpose(1, 2).contiguous().view(B, T, H)
         out = self.out_proj(out)
+        out = self.out_norm(out)
 
-        # Post-norm residual
-        out = self.out_norm(hidden + out)
+        # Flamingo-style tanh-gated residual: tanh(0)=0 → identity at init,
+        # tanh'(0)=1 → full gradient flow, tanh bounds to [-1,1].
+        out = hidden + torch.tanh(self.gate_alpha) * out
 
         if squeeze_batch:
             out = out.squeeze(0)

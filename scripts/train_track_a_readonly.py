@@ -66,8 +66,16 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--num_heads", type=int, default=8,
                    help="Number of attention heads in CrossAttentionSidecar.")
     p.add_argument("--sidecar_dropout", type=float, default=0.0)
+    p.add_argument("--gate_init", type=float, default=0.0,
+                   help="Initial value for sidecar gate (0=no-op, 0.1=small signal).")
+    p.add_argument("--gate_warmup_steps", type=int, default=0,
+                   help="Linearly ramp gate_alpha from 0 to --gate_warmup_target over N steps.")
+    p.add_argument("--gate_warmup_target", type=float, default=0.5,
+                   help="Target gate_alpha value at end of warmup ramp.")
 
     # LoRA
+    p.add_argument("--no_lora", action="store_true",
+                   help="Skip LoRA entirely — train only sidecar projections.")
     p.add_argument("--lora_rank", type=int, default=16)
     p.add_argument("--lora_alpha", type=float, default=32.0)
     p.add_argument("--lora_dropout", type=float, default=0.05)
@@ -162,6 +170,7 @@ class ReadOnlySidecarBundle(nn.Module):
         hidden_dim: int,
         num_heads: int = 8,
         dropout: float = 0.0,
+        gate_init: float = 0.0,
     ) -> None:
         super().__init__()
         self.layer_indices = layer_indices
@@ -177,6 +186,7 @@ class ReadOnlySidecarBundle(nn.Module):
                 reservoir_dim=reservoir_dim,
                 num_heads=num_heads,
                 dropout=dropout,
+                gate_init=gate_init,
             )
             for idx in layer_indices
         })
@@ -361,29 +371,37 @@ def train(args: argparse.Namespace) -> None:
     hidden_dim = model.config.hidden_size
     embed_dim = hidden_dim  # input embeddings have same dim as hidden
 
-    # --- Apply LoRA ---
-    logger.info("Applying LoRA (rank=%d, alpha=%.1f, targets=%s)",
-                args.lora_rank, args.lora_alpha, args.lora_targets)
-    try:
-        from peft import LoraConfig, TaskType, get_peft_model  # type: ignore[import]
+    # --- Apply LoRA (unless --no_lora) ---
+    use_lora = not getattr(args, "no_lora", False)
+    if use_lora:
+        logger.info("Applying LoRA (rank=%d, alpha=%.1f, targets=%s)",
+                    args.lora_rank, args.lora_alpha, args.lora_targets)
+        try:
+            from peft import LoraConfig, TaskType, get_peft_model  # type: ignore[import]
 
-        lora_cfg = LoraConfig(
-            r=args.lora_rank,
-            lora_alpha=args.lora_alpha,
-            lora_dropout=args.lora_dropout,
-            target_modules=args.lora_targets,
-            task_type=TaskType.CAUSAL_LM,
-            bias="none",
-        )
-        model = get_peft_model(model, lora_cfg)
-        model.print_trainable_parameters()
-    except ImportError:
-        logger.warning("peft not installed — training without LoRA.")
+            lora_cfg = LoraConfig(
+                r=args.lora_rank,
+                lora_alpha=args.lora_alpha,
+                lora_dropout=args.lora_dropout,
+                target_modules=args.lora_targets,
+                task_type=TaskType.CAUSAL_LM,
+                bias="none",
+            )
+            model = get_peft_model(model, lora_cfg)
+            model.print_trainable_parameters()
+        except ImportError:
+            logger.warning("peft not installed — training without LoRA.")
+            use_lora = False
+    else:
+        logger.info("LoRA disabled (--no_lora). Training sidecar projections only.")
 
     # Freeze base model (only LoRA + sidecar params will be trained)
-    from src.training.lora_trainer import LoRATrainer
-    lora_trainer = LoRATrainer()
-    lora_trainer.freeze_base_model(model)
+    if use_lora:
+        from src.training.lora_trainer import LoRATrainer
+        LoRATrainer().freeze_base_model(model)
+    else:
+        for p in model.parameters():
+            p.requires_grad = False
 
     # --- Build ESN reservoir (read-only) ---
     logger.info(
@@ -420,6 +438,7 @@ def train(args: argparse.Namespace) -> None:
         hidden_dim=hidden_dim,
         num_heads=args.num_heads,
         dropout=args.sidecar_dropout,
+        gate_init=args.gate_init,
     )
     sidecar_bundle = sidecar_bundle.to(device).to(dtype)
     logger.info(
@@ -449,17 +468,21 @@ def train(args: argparse.Namespace) -> None:
 
     # --- Optimizer ---
     # LoRA params at lora_lr; sidecar params at interface_lr
-    lora_params = [p for n, p in model.named_parameters()
-                   if p.requires_grad and "lora_" in n]
     sidecar_params = list(sidecar_bundle.parameters())
+    param_groups = [{"params": sidecar_params, "lr": args.interface_lr}]
 
-    optimizer = torch.optim.AdamW(
-        [
-            {"params": lora_params, "lr": args.lr},
-            {"params": sidecar_params, "lr": args.interface_lr},
-        ],
-        weight_decay=args.weight_decay,
-    )
+    if use_lora:
+        lora_params = [p for n, p in model.named_parameters()
+                       if p.requires_grad and "lora_" in n]
+        param_groups.insert(0, {"params": lora_params, "lr": args.lr})
+        logger.info("Optimizer: %d LoRA params + %d sidecar params",
+                     sum(p.numel() for p in lora_params),
+                     sum(p.numel() for p in sidecar_params))
+    else:
+        logger.info("Optimizer: %d sidecar params (no LoRA)",
+                     sum(p.numel() for p in sidecar_params))
+
+    optimizer = torch.optim.AdamW(param_groups, weight_decay=args.weight_decay)
 
     from torch.optim.lr_scheduler import CosineAnnealingLR, LinearLR, SequentialLR
 
@@ -519,6 +542,18 @@ def train(args: argparse.Namespace) -> None:
         reservoir_states = np.stack(all_states, axis=0)
         hook_manager.set_reservoir_states(reservoir_states)
 
+        # --- Gate warmup: linearly ramp gate_alpha during early training ---
+        if args.gate_warmup_steps > 0:
+            train_step = global_step // args.grad_accum
+            if train_step < args.gate_warmup_steps:
+                ramp = (train_step / args.gate_warmup_steps) * args.gate_warmup_target
+                for sidecar in sidecar_bundle.sidecars.values():
+                    sidecar.gate_alpha.data.fill_(ramp)
+            elif train_step == args.gate_warmup_steps:
+                # Warmup done — gate_alpha is now at target, let it be learnable
+                logger.info(f"Gate warmup complete at step {train_step}, "
+                            f"gate_alpha={args.gate_warmup_target:.3f}")
+
         # --- Forward pass (hooks inject reservoir states at selected layers) ---
         with torch.autocast(device_type=device.type, dtype=dtype):
             outputs = model(input_ids=input_ids, labels=labels)
@@ -530,7 +565,7 @@ def train(args: argparse.Namespace) -> None:
         accum_loss += loss.item()
 
         if (global_step + 1) % args.grad_accum == 0:
-            all_params = lora_params + sidecar_params
+            all_params = sidecar_params if not use_lora else lora_params + sidecar_params
             torch.nn.utils.clip_grad_norm_(all_params, max_norm=1.0)
             optimizer.step()
             scheduler.step()

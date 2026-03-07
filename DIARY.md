@@ -107,10 +107,318 @@ near peak (1.99e-4) for most of training. Despite this, loss dropped well.
 
 ---
 
-## TODO (next steps)
+## 2026-03-06 (Day 2)
 
-- [ ] Run benchmark evaluation on trained Track A model vs T7 baseline
-- [ ] Run T8 (LLaMA-3.2-1B vanilla) and T9 (Mamba-2 1.3B) baseline evals
-- [ ] Fix LR scheduler (step per training step, not per accumulation step)
-- [ ] Investigate gradient checkpointing + sidecar hook compatibility
-- [ ] Commit training results and config changes
+### 00:00–04:30 — Track A benchmark evaluation (~4.3h)
+
+Ran `python scripts/eval_track_a.py` on the 5000-step checkpoint.
+
+**Results:** Perplexity improved dramatically (2.35 vs 6.82 vanilla), but **ALL benchmark
+exact-match/accuracy scores were 0.000**. The model produces garbage instead of terse answers.
+
+### 04:30–05:30 — Diagnosing format collapse (~1h)
+
+A/B testing revealed three levels of degradation:
+- **Vanilla Qwen:** clean answers (`858`, `674`)
+- **LoRA only** (no sidecar hooks): wrong conversational text (fluent but incorrect)
+- **LoRA + Sidecar**: degenerate garbage (repetitive digits, token loops)
+
+Tested all checkpoints (step 1k-5k) — ALL produce 0/10. Damage happened from step 1000.
+
+### 05:30–07:00 — Quick LR/rank experiments (3 × 200 steps)
+
+| Experiment | LR | Rank | AR | VT |
+|---|---|---|---|---|
+| lr1e5_r16 | 1e-5 | 16 | 0/10 | 0/10 |
+| lr5e6_r16 | 5e-6 | 16 | 0/10 | 0/10 |
+| lr1e5_r4 | 1e-5 | 4 | 0/10 | 0/10 |
+
+Conclusion: ANY LoRA+sidecar training on raw FineWeb text destroys task performance,
+regardless of LR or rank.
+
+### 07:00–08:50 — Root cause: ungated sidecar injection
+
+**Root cause found:** `CrossAttentionSidecar.forward` did:
+```python
+out = self.out_norm(hidden + cross_attn_output)  # LayerNorm(hidden + sidecar)
+```
+Two problems:
+1. **No gating** — randomly initialized sidecar produces large perturbations from step 0
+2. **LayerNorm on hidden** — even with zero sidecar output, `out_norm(hidden)` re-normalizes
+   hidden states, disrupting the model's internal representations at every injection layer
+
+**Fix:** gated additive residual with normalized sidecar output:
+```python
+self.gate = nn.Parameter(torch.zeros(1))  # starts at 0 → no-op
+out = self.out_norm(out_proj(cross_attn))  # normalize sidecar output only
+return hidden + self.gate * out            # clean residual
+```
+
+**Verification:**
+- Sidecar-only (no LoRA), 200 steps: AR=9/10, VT=0/10 (matches vanilla!)
+- LoRA + gated sidecar, 200 steps: AR=9/10, VT=0/10 (also matches vanilla!)
+
+The gate starts near zero so the model behaves like vanilla initially.
+Training gradually opens the gate as the sidecar learns useful representations.
+
+### 08:50–11:15 — 1000-step LoRA+gated sidecar training (~1.7h)
+
+`lr=2e-4, interface_lr=1e-3, rank=16, alpha=32, save every 500 steps`
+
+**Loss curve:**
+| Step | Loss   | LR       |
+|------|--------|----------|
+|  100 | 3.096  | 2.58e-05 |
+|  200 | 3.049  | 4.95e-05 |
+|  500 | 3.148  | 1.25e-04 |
+| 1000 | 3.016  | 2.00e-04 |
+
+Loss barely moved (gate near zero → sidecar contribution minimal during training).
+Final perplexity: 19.41 (higher than vanilla 6.82 because sidecar is still learning).
+
+**Quick test results — reservoir sidecar IMPROVES task performance:**
+
+| Checkpoint | AR | VT | Notes |
+|---|---|---|---|
+| Vanilla baseline (T7) | ~7.7/10 | ~4.5/10 | No sidecar |
+| Step 500 | 9/10 | 0/10 | VT outputs `<think>` prefix (format issue) |
+| **Step 1000** | **10/10** | **7/10** | VT outputs `Answer: X` (correct, format prefix) |
+
+**AR improved 7.7 → 10/10 (+30%). VT improved 4.5 → 7/10 (+56%).**
+
+The reservoir sidecar enhances the model's memory-dependent task performance,
+which is exactly what the architecture was designed to do. AssociativeRecall
+requires remembering key-value pairs from earlier in the context, and
+VariableTracking requires tracking variable reassignments — both are memory tasks
+that benefit from the ESN reservoir's temporal state.
+
+**Key architectural changes that made this work:**
+1. Gated residual (gate=0 at init) prevents destroying base model at step 0
+2. LayerNorm on sidecar output only (not on hidden states) preserves model internals
+3. `--no_lora` flag added to training script for sidecar-only experiments
+4. Fixed `freeze_base_model` to not accidentally freeze LoRA params
+
+### 11:15–11:20 — Isolation test: sidecar vs LoRA contribution
+
+Tested 1000-step checkpoint with sidecar hooks disabled to isolate contributions:
+
+| Config | AR | VT | Notes |
+|---|---|---|---|
+| Vanilla (no training) | ~7.7/10 | ~4.5/10 | Baseline |
+| LoRA only (sidecar disabled) | 9/10 | 0/10 | VT outputs `<think>` |
+| **LoRA + Sidecar** | **10/10** | **7/10** | Sidecar enables VT |
+
+**The sidecar is the difference.** LoRA alone slightly improves AR but breaks VT.
+The reservoir sidecar provides the memory signal that enables VariableTracking (+7/10)
+and further improves AssociativeRecall (+1/10).
+
+### 11:20 — Started 5000-step LoRA+gated sidecar training
+
+`lr=2e-4, interface_lr=1e-3, rank=16, alpha=32, warmup=100, save every 1000 steps`
+
+Running in background (`nohup`, PID 1368110). Log: `/tmp/train_gated_5k.log`
+Estimated ~8h. Checkpoints at steps 1000, 2000, 3000, 4000, 5000.
+
+### 11:20–23:00 — Discovering the gate never opens (chicken-and-egg problem)
+
+**5k training runs with various LRs all showed the same problem: gates never open.**
+
+Checked gate values from saved checkpoints — all 6 sidecar gates were ~0.002-0.005
+after 1000-2000 steps. The sidecar contributed essentially nothing. The VT=7/10 result
+from the earlier 1k run was likely a fluke (benchmarks use random test examples each run,
+making cross-run comparison unreliable).
+
+**OOM issues:** Two 5k training runs OOM'd at step 1500 due to CUDA memory fragmentation.
+Fixed with `PYTORCH_ALLOC_CONF=expandable_segments:True`.
+
+**Gate sweep experiments (200 steps each):**
+
+| Config | gate_init | LoRA | LR | iface_lr | AR | VT | Gate after training |
+|---|---|---|---|---|---|---|---|
+| Baseline (gate=0) | 0.0 | yes | 1e-5 | 5e-4 | 9/10 | 0/10 | ~0.005 |
+| gate=0.1 no LoRA | 0.1 | no | — | 1e-3 | 0/10 | 0/10 | 0.097 (decreased!) |
+| gate=0.01 + zero-init out_proj | 0.01 | yes | 1e-5 | 1e-4 | 10/10 | 0/10 | ~0.0098 |
+| gate=1.0 + zero-init out_proj | 1.0 | yes | 1e-5 | 5e-4 | 0/10 | 0/10 | 1.0 (loss=48K ppl!) |
+| gate=1.0 + zero-init, low lr | 1.0 | yes | 1e-5 | 1e-5 | — | — | Loss rising (3.1→3.7) |
+
+**Root cause analysis:**
+1. **gate=0**: `tanh'(0)` would give gradient=1, but raw scalar gate `d/d_gate[gate * out]` = out.
+   Since sidecar output is random noise, this gradient is noisy and small. Gate barely moves.
+2. **gate>0 with random out_proj**: Random projections inject noise → model degrades → training
+   tries to close gate (gate decreases).
+3. **Zero-init out_proj + gate=1.0**: Sidecar output starts at zero, but as out_proj learns,
+   signal grows without bound → loss explodes.
+4. **Zero-init out_proj + small gate**: Gradient through `gate * zero_proj(...)` is ~0 at init.
+   Double-zero blocks all learning.
+
+### 23:00 — Flamingo-style tanh gating (the solution)
+
+**Research finding:** Flamingo (Alayrac et al., NeurIPS 2022) solves this exact problem with
+`tanh(alpha)` gating:
+
+```python
+# Instead of: hidden + gate * sidecar_output
+# Use:        hidden + tanh(alpha) * sidecar_output
+# alpha initialized to 0
+```
+
+Why this works:
+- `tanh(0) = 0` → identity at init (no noise injection)
+- `tanh'(0) = 1` → **perfect gradient flow from step 1** (unlike raw gate or zero-init)
+- `tanh` bounds output to [-1, 1] → prevents explosion
+- Sidecar projections keep normal random init → nonzero output → nonzero gradient
+
+The key insight is that with a raw scalar gate at 0, the gradient to sidecar params is
+`gate * d_sidecar/d_params = 0`. But with `tanh(alpha)` at alpha=0, the gradient to sidecar
+params is `tanh'(alpha) * d_sidecar/d_params = 1 * nonzero = nonzero`. The gradient doesn't
+depend on the gate VALUE, only on its DERIVATIVE.
+
+**Also must NOT combine with zero-init out_proj** — that would make sidecar output zero,
+killing the gradient path again. Need random init projections + tanh gate.
+
+Implemented in `CrossAttentionSidecar`: renamed `self.gate` to `self.gate_alpha`, changed
+forward to use `torch.tanh(self.gate_alpha)`.
+
+---
+
+### 02:42 — Step 1 result: tanh gate baseline (1000 steps, interface_lr=5e-4)
+
+Training: loss stable ~3.0, final ppl=19.43. 1.7h runtime.
+
+Gate alpha values at step 1000 (all tiny, tanh approx alpha at this scale):
+| Layer | alpha | tanh(alpha) |
+|---|---|---|
+| 3 | +0.00455 | +0.00455 |
+| 7 | +0.00287 | +0.00287 |
+| 11 | +0.00197 | +0.00197 |
+| 15 | -0.00304 | -0.00304 |
+| 19 | +0.00516 | +0.00516 |
+| 23 | -0.00412 | -0.00412 |
+
+Benchmark: **AR=10/10, VT=3/10**
+
+VT improved from 0/10 (at 200 steps) to 3/10 (at 1000 steps).
+Gates barely moved but VT is improving — likely from LoRA, not sidecar.
+Moving to Step 2: higher interface_lr to see if gates can be pushed open.
+
+### 04:27 — Step 2a result: interface_lr=1e-3 (2x baseline)
+
+Training: loss identical to baseline (~3.0, ppl=19.42). Gates same magnitude (~0.003-0.007).
+Benchmark: **AR=9/10, VT=0/10** — worse than baseline (10/10, 3/10).
+Higher sidecar lr did NOT help gates open and slightly hurt task performance.
+Starting Step 2b (interface_lr=5e-3, 10x aggressive).
+
+### 06:11 — Step 2b result: interface_lr=5e-3 (10x aggressive)
+
+Training: loss identical (ppl=19.46). Gates same magnitude (~0.001-0.007).
+Benchmark: **AR=9/10, VT=0/10**
+
+**Conclusion: increasing interface_lr does NOT help gates open.**
+The problem is fundamental: sidecar gradient = tanh(alpha) * d_sidecar/d_params,
+and tanh(alpha) is ~0.005 regardless of lr. Higher lr * ~zero gradient = ~zero update.
+The gate alpha itself moves at the same rate because its gradient (tanh'(alpha) * sidecar_out)
+doesn't depend on interface_lr (gate uses LoRA lr=1e-5, not interface_lr).
+
+Skipping Step 2c (no-LoRA variant) — same issue applies.
+Moving to fallback: **linear gate warmup schedule** to force gates open.
+
+### 07:54 — Step 3 result: gate warmup (0->0.5 over 200 steps)
+
+Implemented --gate_warmup_steps and --gate_warmup_target in training script.
+Training: loss rising (3.1->3.7, ppl=44.92 vs baseline 19.43) — sidecar injection
+destabilizing with target=0.5.
+
+Gates at step 500: all identical at 0.077 (dropped from forced 0.5).
+Gates at step 1000: all identical at 0.155 (growing back up — sidecar learning!).
+Note: all gates locked together (bug — warmup sets identical values, they stay coupled).
+
+Benchmark: **AR=2/10, VT=6/10**
+
+**BREAKTHROUGH: VT=6/10 is the best VT score yet!** The sidecar IS helping variable tracking.
+But AR collapsed (2/10 vs 10/10 baseline) — gate target=0.5 too aggressive.
+Next: try smaller target (0.1) to balance AR preservation with VT improvement.
+
+### 09:34 — Step 3b result: gate warmup target=0.1
+
+Training: loss only slightly elevated (ppl=23.80 vs baseline 19.43).
+Gates: warmed to 0.1, dropped to 0.0155 at step 500, grew back to 0.031 at step 1000.
+Still all identical (coupled — warmup sets same value, they stay locked).
+
+Benchmark: **AR=10/10, VT=6/10** — best combined result!
+
+Summary table:
+| Config | AR | VT | Gates | ppl |
+|---|---|---|---|---|
+| No warmup (baseline) | 10/10 | 3/10 | ~0.005 | 19.43 |
+| Warmup target=0.5 | 2/10 | 6/10 | 0.155 | 44.92 |
+| **Warmup target=0.1** | **10/10** | **6/10** | **0.031** | **23.80** |
+
+Gate warmup target=0.1 is the sweet spot: preserves AR, doubles VT, gates open and growing.
+Next: try target=0.2 to see if VT can go higher without hurting AR.
+
+### 11:18 — Step 3c result: gate warmup target=0.2
+
+Training: loss higher (ppl=27.81). Gates at 0.062.
+Benchmark: **AR=0/10, VT=2/10** — too aggressive, both tasks degraded.
+
+Full warmup sweep:
+| target | AR | VT | Gates | ppl |
+|---|---|---|---|---|
+| 0 (none) | 10/10 | 3/10 | 0.005 | 19.43 |
+| **0.1** | **10/10** | **6/10** | **0.031** | **23.80** |
+| 0.2 | 0/10 | 2/10 | 0.062 | 27.81 |
+| 0.5 | 2/10 | 6/10 | 0.155 | 44.92 |
+
+**Winner: target=0.1.** But need to validate before committing to 8h long run.
+
+### 12:00 — Killed 5k run, more validation needed
+
+Open questions before long run:
+1. Is VT=6/10 from the sidecar or from different LoRA training dynamics?
+   → Need --no-sidecar isolation test on warmup=0.1 checkpoint
+2. Do we need all 6 sidecar layers, or would 3 work as well?
+   → Need fewer-layer experiment (half the sidecar params)
+3. Why are all 6 gates identical? Warmup locks them together.
+   → May need per-layer noise or separate param groups
+
+### 12:43 — Step 4a: Gate evolution + isolation test (500 steps, save every 100)
+
+Gate evolution (all 6 layers identical):
+| Step | alpha | tanh | Note |
+|---|---|---|---|
+| 100 | 0.003 | 0.003 | warmup active (forced to 0.05, optimizer pulls down) |
+| 200 | 0.006 | 0.006 | warmup ends |
+| 300 | 0.009 | 0.009 | post-warmup, growing |
+| 400 | 0.012 | 0.012 | growing |
+| 500 | 0.016 | 0.016 | growing |
+
+Benchmark by step:
+| Step | AR | VT |
+|---|---|---|
+| 200 | 10/10 | 0/10 |
+| 300 | 10/10 | 0/10 |
+| 500 | 10/10 | **9/10** |
+
+VT jumps from 0 to 9 between step 300-500. Something critical happens there.
+
+**Isolation test (step 500):**
+| | AR | VT |
+|---|---|---|
+| With sidecar | 10/10 | **9/10** |
+| Without sidecar | 9/10 | **0/10** |
+
+**CONFIRMED: The sidecar is entirely responsible for VT improvement.**
+VT=9/10 is our best result ever. AR preserved at 10/10.
+
+### 14:45 — 5k run step 1000 checkpoint
+
+Gates at step 1000: alpha=0.031 (all identical, consistent with prior runs).
+
+### 16:45 — 5k run step 2000 checkpoint (tested on CPU)
+
+Gates at step 2000: alpha=0.062 (doubled from step 1000, still growing).
+Added --cpu flag to quick_test.py to test while GPU is busy training.
+Benchmark: **AR=9/10, VT=6/10** — slight regression from 500-step VT=9/10.
+Gates may be getting too strong as they continue growing.
+
+See `TODO.md` for current experiment plan and backlog.
