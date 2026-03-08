@@ -111,11 +111,16 @@ def _git_hash() -> str:
 
 
 def _make_prompt(example: BenchmarkExample, shots: list[BenchmarkExample]) -> str:
-    """Build a (optionally few-shot) text prompt for an example."""
+    """Build a (optionally few-shot) text prompt for an example.
+
+    Uses the benchmark's native prompt format directly, without wrapping in
+    Input:/Output: tags. This follows standard eval practice (lm-eval-harness,
+    HELM) and avoids prompt format mismatch with training data.
+    """
     parts: list[str] = []
     for shot in shots:
-        parts.append(f"Input: {shot.input}\nOutput: {shot.target}")
-    parts.append(f"Input: {example.input}\nOutput:")
+        parts.append(f"{shot.input}\n{shot.target}")
+    parts.append(example.input)
     return "\n\n".join(parts)
 
 

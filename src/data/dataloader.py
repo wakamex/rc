@@ -99,9 +99,8 @@ def _memory_task_examples(seed: int = 1337) -> Iterator[str]:
             gen = PasskeyRetrieval(n=1, context_length=ctx_len, seed=task_seed)
 
         for ex in gen:
-            # Match eval harness prompt format (Input: ...\nOutput: ...)
-            # so the model learns the same template used at eval time.
-            yield f"Input: {ex.input}\nOutput: {ex.target}"
+            # Use benchmark's native prompt format directly.
+            yield f"{ex.input}\n{ex.target}"
 
 
 def build_mixed_dataloader(
