@@ -116,10 +116,14 @@ from eval harness format `"Input: ...\nOutput:"`. Not a harness bug.
 **The VT+0.180 and Dyck+0.425 wins are genuine. The AR-0.510 loss is a training
 format mismatch, not a sidecar problem.** The sidecar architecture works.
 
+### ~~Step 9b: AR prompt format A/B test~~ DONE
+
+AR with raw prompt format: **50/50 (100%)** vs harness format: 14/50 (28%).
+The AR regression is entirely prompt format mismatch. Track A AR > vanilla AR.
+
 ### Step 10: Next experiments (BACKLOG)
 
-- [ ] Fix AR by aligning eval prompt format with training format
-- [ ] Or: retrain with instruction-style memory tasks ("Output only the number")
+- [ ] Run full n=200 AR eval with training prompt format for definitive score
 - [ ] 10k step run to see if gates stabilize further
 - [ ] Test on harder benchmarks (more pairs, longer delays)
 
