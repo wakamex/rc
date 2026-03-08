@@ -92,11 +92,17 @@ learns language modeling, not recall.
 Not needed — gates self-regulate with 30% memory task data.
 The memory task gradient naturally finds the optimal gate value.
 
-### Step 8: Full benchmark eval (NEXT)
+### Step 7b: GPU ESN acceleration — DONE
 
-Run `scripts/eval_track_a.py` or full benchmark suite on the best checkpoint
-(mixed_030_5k/step_5000) to get comprehensive metrics beyond AR/VT n=10.
-Test with n=200 for statistical significance.
+Implemented `ESNGpu` class in `src/reservoir/esn.py`. Converts scipy sparse to PyTorch
+sparse CSR on GPU. 38.7x speedup (18.3s→0.47s per 2048-step, n=10000).
+Updated train, eval, and quick_test scripts.
+
+### Step 8: Full benchmark eval (IN PROGRESS)
+
+Running `scripts/eval_track_a.py` on best checkpoint (mixed_030_5k/step_5000)
+with n=200, 23 benchmarks, GPU ESN. Perplexity: 7.71.
+ETA: ~3h (GPU ESN, was ~23h on CPU).
 
 ### Step 9: Longer run / higher n eval
 

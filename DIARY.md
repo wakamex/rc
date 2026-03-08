@@ -719,3 +719,25 @@ what the optimal gate value is.
 the VT degradation problem. The sidecar learns to extract useful memory from the
 reservoir, gates self-regulate to optimal values, and per-layer gate values diverge
 as each layer specializes. This is a validated, working reservoir computing sidecar.
+
+---
+
+## 2026-03-08 (Day 4)
+
+### GPU ESN acceleration (cuSPARSE)
+
+Full benchmark eval (n=200, 23 benchmarks) was running on CPU ESN — estimated ~23h total.
+Implemented `ESNGpu` class that converts scipy sparse CSR matrices to PyTorch sparse CSR
+tensors on GPU, using cuSPARSE for sparse matrix-vector multiplies.
+
+**Benchmark:** CPU 18.3s → GPU 0.47s per 2048-step sequence (n=10000) = **38.7x speedup**.
+
+Updated all scripts: `train_track_a_readonly.py`, `quick_test.py`, `eval_track_a.py`.
+
+Killed the CPU eval (PID 3189456, ~285 min elapsed, no results yet) and restarted with
+GPU ESN (PID 3484740). New estimate: ~3h for full 23-benchmark suite.
+
+### Step 8: Full benchmark eval (IN PROGRESS)
+
+Running `eval_track_a.py` on best checkpoint (mixed_030_5k/step_5000) with n=200,
+23 benchmarks, GPU ESN. Perplexity: **7.71**.
