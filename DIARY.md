@@ -643,3 +643,37 @@ Gates: alpha=0.093. **AR=10/10, VT=7/10**.
 
 VT slightly down from 8→7 but far from collapsing. Steps 4000-5000 are fully
 uncharted — we've never run with gates this open before.
+
+### 08:00 — Step 6d: step 4000 — GATES SELF-CORRECTING
+
+**AR=10/10, VT=9/10!** Best score yet at the highest step count.
+
+**Critical discovery: gates are self-correcting and diverging.**
+
+| Layer | Step 3000 alpha | Step 4000 alpha |
+|-------|----------------|----------------|
+| 3 | 0.093 | 0.075 |
+| 7 | 0.093 | 0.075 |
+| 11 | 0.093 | 0.075 |
+| 15 | 0.093 | 0.075 |
+| 19 | 0.093 | **0.077** |
+| 23 | 0.093 | **0.098** |
+
+Three things happened:
+1. **Gates DECREASED** from 0.093 to 0.075 (most layers) — self-regulation!
+2. **Gate coupling broke** — layers 19 and 23 diverge from others
+3. **VT improved** (7→9) as gates found a better operating point
+
+The memory task gradient is telling the gates "you're too open, dial back." This
+never happened with pure FineWeb because FineWeb doesn't have a clear signal for
+what the optimal gate value is.
+
+**Updated 5k run table:**
+
+| Step | Gate (layer 3) | VT | Note |
+|------|---------------|-----|------|
+| 1000 | 0.031 | 8/10 | growing |
+| 2000 | 0.062 | 8/10 | growing |
+| 3000 | 0.093 | 7/10 | peak gate, slight VT dip |
+| 4000 | **0.075** | **9/10** | **gates self-corrected!** |
+| 5000 | — | — | pending (~1.5h) |
