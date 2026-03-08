@@ -99,10 +99,9 @@ def _memory_task_examples(seed: int = 1337) -> Iterator[str]:
             gen = PasskeyRetrieval(n=1, context_length=ctx_len, seed=task_seed)
 
         for ex in gen:
-            # Format as prompt + answer for causal LM training
-            # No prefix before target — keeps output format neutral so the model
-            # works with any eval harness prompt template.
-            yield f"{ex.input}\n{ex.target}"
+            # Match eval harness prompt format (Input: ...\nOutput: ...)
+            # so the model learns the same template used at eval time.
+            yield f"Input: {ex.input}\nOutput: {ex.target}"
 
 
 def build_mixed_dataloader(
