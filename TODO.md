@@ -83,8 +83,11 @@ Compare with pure-FineWeb baseline (VT=9/10 at step 500).
 **6c:** DONE. 2000 steps, 10% mix: VT non-monotonic 8→6→9→6 (vs pure FineWeb 9→6→3).
   Mixed data prevents VT collapse but doesn't fully stabilize it.
 
-**6b (NEXT):** 2000 steps, 30% memory tasks. Higher ratio to strengthen signal.
-  Gate growth identical across mixes — but sidecar learning differs.
+**6b:** DONE. 2000 steps, 30% mix: VT monotonically improving 7→8→8→9!
+  **Best result: VT=9/10 at step 2000 (alpha=0.062)**. Pure FineWeb gave 6/10 at same gate.
+
+**6d (NEXT):** Extend 30% mix to 5000 steps. Test if VT continues improving.
+  The sidecar is actually learning — longer training should help, not hurt.
 
 ### Step 7: Gate freezing experiment (optional)
 

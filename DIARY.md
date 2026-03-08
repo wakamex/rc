@@ -559,3 +559,39 @@ Final: **AR=10/10, VT=6/10** at step 2000 (alpha=0.062), ppl=17.37.
    as it balances LM and memory task objectives
 
 **Next:** Try higher memory ratio (30%) to strengthen the memory signal.
+
+### 23:00 — Step 6b: 2000 steps, 30% memory tasks
+
+Loss: 3.16→3.05 (ppl=21.22). Gate growth: identical (0.016→0.062).
+
+**Benchmark results:**
+
+| Step | Gate alpha | 30% mix VT | 10% mix VT | Pure FineWeb VT |
+|------|-----------|-----------|-----------|-----------------|
+| 500 | 0.016 | 7/10 | 8/10 | 9/10 |
+| 1000 | 0.031 | **8/10** | 6/10 | — |
+| 1500 | 0.046 | **8/10** | 9/10 | — |
+| 2000 | 0.062 | **9/10** | 6/10 | 6/10 |
+
+**30% mix is the winner.** VT improves monotonically (7→8→8→9) while pure FineWeb
+collapses (9→6→3). The sidecar is learning to be genuinely useful for memory tasks
+at higher gate values — at alpha=0.062, pure FineWeb gives VT=6/10 but 30% mix gives
+VT=9/10. Same gate, different sidecar quality.
+
+AR=10/10 across all steps (no degradation).
+
+**Full comparison across all experiments:**
+
+| Config | Step 500 VT | Step 1000 VT | Step 1500 VT | Step 2000 VT | Step 3000 VT |
+|--------|------------|-------------|-------------|-------------|-------------|
+| Pure FineWeb | 9/10 | — | — | 6/10 | 3/10 |
+| 10% mix | 8/10 | 6/10 | 9/10 | 6/10 | — |
+| **30% mix** | **7/10** | **8/10** | **8/10** | **9/10** | **—** |
+
+**Conclusions:**
+1. 30% memory tasks is the best ratio so far: VT improves over time
+2. Gate growth rate is INDEPENDENT of training data — purely a function of step count
+3. The data mix controls WHAT the sidecar learns, not HOW MUCH the gate opens
+4. Pure FineWeb sidecar learns to inject noise; mixed sidecar learns to inject memory
+5. Loss is slightly higher (ppl=21 vs 17 for 10%) because memory tasks are harder
+   than random text prediction, but this is a feature, not a bug
