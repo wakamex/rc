@@ -100,7 +100,9 @@ def _memory_task_examples(seed: int = 1337) -> Iterator[str]:
 
         for ex in gen:
             # Format as prompt + answer for causal LM training
-            yield f"{ex.input}\nAnswer: {ex.target}"
+            # No prefix before target — keeps output format neutral so the model
+            # works with any eval harness prompt template.
+            yield f"{ex.input}\n{ex.target}"
 
 
 def build_mixed_dataloader(
