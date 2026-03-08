@@ -221,3 +221,91 @@ class ESN:
         for t in range(T):
             states[t] = self.step(X[t])
         return states
+
+    def to_gpu(self, device: str = "cuda") -> "ESNGpu":
+        """Convert to GPU-accelerated version using PyTorch sparse tensors."""
+        return ESNGpu(self, device=device)
+
+
+class ESNGpu:
+    """GPU-accelerated ESN using PyTorch sparse tensors.
+
+    Wraps an existing ESN, converting its scipy sparse matrices to PyTorch
+    sparse CSR tensors on GPU. The sequential step loop still can't be
+    parallelized, but each step's sparse MV is much faster on GPU (cuSPARSE).
+    """
+
+    def __init__(self, esn: ESN, device: str = "cuda") -> None:
+        import torch
+
+        self.n = esn.n
+        self.alpha = float(esn.alpha)
+        self.device = torch.device(device)
+
+        # Convert W (sparse CSR) to PyTorch
+        W_csr = esn.W.tocsr()
+        self.W = torch.sparse_csr_tensor(
+            torch.from_numpy(W_csr.indptr.astype(np.int64)),
+            torch.from_numpy(W_csr.indices.astype(np.int64)),
+            torch.from_numpy(W_csr.data.astype(np.float32)),
+            size=W_csr.shape,
+            device=self.device,
+        )
+
+        # Convert W_in (may be sparse or dense) to PyTorch
+        if sp.issparse(esn.W_in):
+            Win_csr = esn.W_in.tocsr()
+            self.W_in = torch.sparse_csr_tensor(
+                torch.from_numpy(Win_csr.indptr.astype(np.int64)),
+                torch.from_numpy(Win_csr.indices.astype(np.int64)),
+                torch.from_numpy(Win_csr.data.astype(np.float32)),
+                size=Win_csr.shape,
+                device=self.device,
+            )
+        else:
+            self.W_in = torch.from_numpy(esn.W_in.astype(np.float32)).to(self.device)
+
+        self.state = torch.zeros(self.n, dtype=torch.float32, device=self.device)
+
+    def reset(self) -> None:
+        self.state.zero_()
+
+    def step(self, x_t: np.ndarray) -> np.ndarray:
+        """Single step — takes numpy input, returns numpy output for compatibility."""
+        import torch
+
+        x = torch.from_numpy(np.asarray(x_t, dtype=np.float32)).to(self.device)
+        r = self.state
+
+        pre = torch.mv(self.W, r)
+        if self.W_in.is_sparse or self.W_in.layout == torch.sparse_csr:
+            pre = pre + torch.mv(self.W_in, x)
+        else:
+            pre = pre + self.W_in @ x
+
+        self.state = (1.0 - self.alpha) * r + self.alpha * torch.tanh(pre)
+        return self.state.cpu().numpy()
+
+    def forward(self, X: np.ndarray) -> np.ndarray:
+        """Run full sequence on GPU, return numpy states."""
+        import torch
+
+        T = X.shape[0]
+        X_gpu = torch.from_numpy(np.asarray(X, dtype=np.float32)).to(self.device)
+
+        # Pre-compute all W_in @ x_t at once (batch matrix multiply)
+        if self.W_in.is_sparse or self.W_in.layout == torch.sparse_csr:
+            Win_X = torch.mm(self.W_in, X_gpu.T).T  # (T, n)
+        else:
+            Win_X = X_gpu @ self.W_in.T  # (T, n)
+
+        states = torch.empty((T, self.n), dtype=torch.float32, device=self.device)
+        r = self.state
+
+        for t in range(T):
+            pre = torch.mv(self.W, r) + Win_X[t]
+            r = (1.0 - self.alpha) * r + self.alpha * torch.tanh(pre)
+            states[t] = r
+
+        self.state = r
+        return states.cpu().numpy()

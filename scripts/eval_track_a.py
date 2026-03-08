@@ -95,10 +95,7 @@ class ReservoirEvalAdapter:
 
         self._esn.reset()
         emb_np = embeddings[0].detach().float().cpu().numpy()  # (T, H)
-        T, _ = emb_np.shape
-        states = np.zeros((T, self._esn.n), dtype=np.float32)
-        for t in range(T):
-            states[t] = self._esn.step(emb_np[t])
+        states = self._esn.forward(emb_np)  # (T, reservoir_dim)
 
         # Set reservoir states for hooks: (1, T, reservoir_dim)
         self._hook_manager.set_reservoir_states(states[None])
@@ -172,10 +169,7 @@ def compute_perplexity(
             embeddings = embed_layer(ids)
             esn.reset()
             emb_np = embeddings[0].detach().float().cpu().numpy()
-            T = emb_np.shape[0]
-            states = np.zeros((T, esn.n), dtype=np.float32)
-            for t in range(T):
-                states[t] = esn.step(emb_np[t])
+            states = esn.forward(emb_np)  # (T, reservoir_dim)
             hook_manager.set_reservoir_states(states[None])
 
             outputs = model(ids, labels=ids)
@@ -285,7 +279,8 @@ def main() -> None:
         sparsity=0.01,
         seed=42,
     )
-    esn = ESN(reservoir_cfg, input_dim=hidden_dim)
+    esn_cpu = ESN(reservoir_cfg, input_dim=hidden_dim)
+    esn = esn_cpu.to_gpu(args.device) if device.type == "cuda" else esn_cpu
 
     # --- Build sidecar bundle and load weights ---
     num_layers = model.config.num_hidden_layers

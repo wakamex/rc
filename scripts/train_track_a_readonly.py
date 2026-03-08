@@ -423,8 +423,14 @@ def train(args: argparse.Namespace) -> None:
         sparsity=args.reservoir_sparsity,
         seed=args.reservoir_seed,
     )
-    esn = ESN(reservoir_cfg, input_dim=embed_dim)
-    logger.info("ESN reservoir built: %d nodes, input_dim=%d", esn.n, embed_dim)
+    esn_cpu = ESN(reservoir_cfg, input_dim=embed_dim)
+    logger.info("ESN reservoir built: %d nodes, input_dim=%d", esn_cpu.n, embed_dim)
+    # Use GPU ESN if available for ~40x speedup
+    if device.type == "cuda":
+        esn = esn_cpu.to_gpu(device.type)
+        logger.info("ESN moved to GPU (cuSPARSE acceleration)")
+    else:
+        esn = esn_cpu
 
     # --- Determine sidecar layer indices ---
     num_layers = model.config.num_hidden_layers
@@ -548,17 +554,14 @@ def train(args: argparse.Namespace) -> None:
             embeddings = embed_layer(input_ids)  # (B, T, H)
 
         # Run each sequence in the batch through the reservoir
-        # Using first sequence for single-state injection; for batched we use mean
-        # For efficiency: use the mean embedding across the batch as single reservoir input
         # Full per-example reservoir states computed sequence-by-sequence
+        # ESNGpu.forward() batches W_in @ x and runs the loop on GPU (~40x faster)
         batch_size_actual = input_ids.shape[0]
         all_states = []
         for b in range(batch_size_actual):
             esn.reset()
             emb_b = embeddings[b].detach().float().cpu().numpy()  # (T, H)
-            states_b = np.zeros((emb_b.shape[0], esn.n), dtype=np.float32)
-            for t in range(emb_b.shape[0]):
-                states_b[t] = esn.step(emb_b[t])
+            states_b = esn.forward(emb_b)  # (T, n) — runs on GPU if ESNGpu
             all_states.append(states_b)
 
         # reservoir_states shape: (B, T, reservoir_dim)

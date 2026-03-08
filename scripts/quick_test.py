@@ -28,8 +28,9 @@ def test_checkpoint(ckpt_path, n=10, use_sidecar=True, device_str='cuda'):
         print(f"  No LoRA adapter found — using base model + sidecar only")
     model.eval()
 
-    esn = ESN(ReservoirConfig(size=10000, spectral_radius=0.9, leak_rate=0.5,
+    esn_cpu = ESN(ReservoirConfig(size=10000, spectral_radius=0.9, leak_rate=0.5,
               input_scaling=1.0, sparsity=0.01, seed=42), input_dim=hdim)
+    esn = esn_cpu.to_gpu(device_str) if device_str == 'cuda' else esn_cpu
     hooks = None
     if use_sidecar:
         sidecar = ReadOnlySidecarBundle(sidecar_layers, 10000, hdim, 8, 0.0)
@@ -49,9 +50,7 @@ def test_checkpoint(ckpt_path, n=10, use_sidecar=True, device_str='cuda'):
                 embs = embed(ids)
             esn.reset()
             e = embs[0].detach().float().cpu().numpy()
-            states = np.zeros((e.shape[0], esn.n), dtype=np.float32)
-            for t in range(e.shape[0]):
-                states[t] = esn.step(e[t])
+            states = esn.forward(e)  # (T, n) — GPU-accelerated if on cuda
             if hooks:
                 hooks.set_reservoir_states(states[None])
             with torch.no_grad():
