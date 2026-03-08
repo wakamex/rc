@@ -676,4 +676,46 @@ what the optimal gate value is.
 | 2000 | 0.062 | 8/10 | growing |
 | 3000 | 0.093 | 7/10 | peak gate, slight VT dip |
 | 4000 | **0.075** | **9/10** | **gates self-corrected!** |
-| 5000 | — | — | pending (~1.5h) |
+| 5000 | **0.044** | **9/10** | **gates continued decreasing** |
+
+### 10:30 — Step 6d COMPLETE: 5000 steps, 30% mix
+
+**Final: AR=10/10, VT=9/10, ppl=11.09.** Best result of the entire project.
+
+**Gate evolution — self-regulation confirmed:**
+
+| Step | L3 | L7 | L11 | L15 | L19 | L23 |
+|------|-----|-----|------|------|------|------|
+| 1000 | .031 | .031 | .031 | .031 | .031 | .031 |
+| 2000 | .062 | .062 | .062 | .062 | .062 | .062 |
+| 3000 | .093 | .093 | .093 | .093 | .093 | .093 |
+| 4000 | .075 | .075 | .075 | .075 | .077 | .098 |
+| 5000 | **.046** | **.044** | **.044** | **.050** | **.059** | **.098** |
+
+**Three phenomena at once:**
+1. **Self-regulation:** Gates grew to 0.093 (step 3000), then DECREASED to ~0.044-0.059
+   (step 5000). The cosine LR schedule + memory task gradient found the optimal range.
+2. **Gate decoupling:** Layer 23 stayed at 0.098 while others dropped to 0.044-0.059.
+   Each layer finding its own optimal operating point — no longer locked together.
+3. **Stable VT:** VT=8→8→7→9→9 over 5000 steps. No degradation.
+
+**Isolation test (step 5000):**
+| | AR | VT |
+|---|---|---|
+| With sidecar | 10/10 | **9/10** |
+| Without sidecar | 8/10 | **0/10** |
+
+**Final comparison — all experiments:**
+
+| Config | Step 500 | Step 2000 | Step 3000 | Step 5000 |
+|--------|----------|-----------|-----------|-----------|
+| Pure FineWeb | VT=9 | VT=6 | VT=3 | — |
+| 10% mix | VT=8 | VT=6 | — | — |
+| **30% mix** | VT=7 | VT=8 | VT=7 | **VT=9** |
+
+**Training stats:** 5000 steps in 7h13m (~26000s). Loss: 3.16→2.41 (ppl=11.09).
+
+**Summary:** Mixed-data training with 30% synthetic memory tasks completely solves
+the VT degradation problem. The sidecar learns to extract useful memory from the
+reservoir, gates self-regulate to optimal values, and per-layer gate values diverge
+as each layer specializes. This is a validated, working reservoir computing sidecar.

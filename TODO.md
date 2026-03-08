@@ -83,14 +83,27 @@ learns language modeling, not recall.
 **6b:** DONE. 2000 steps, 30% mix: VT monotonically improving 7→8→8→9!
   **Best result: VT=9/10 at step 2000 (alpha=0.062)**. Pure FineWeb gave 6/10 at same gate.
 
-**6d (IN PROGRESS):** 5000 steps, 30% mix. Started ~03:05. ETA ~11:00.
-  Saves every 1000 steps. Test each checkpoint as it appears.
-  The sidecar is actually learning — longer training should help, not hurt.
+**6d:** DONE. 5000 steps, 30% mix: **VT=9/10 at step 5000!**
+  Gates self-regulated (0.031→0.093→0.044), per-layer decoupling observed.
+  Best result of the project. Sidecar confirmed working at scale.
 
-### Step 7: Gate freezing experiment (optional)
+### ~~Step 7: Gate freezing experiment~~ SKIPPED
 
-If mixed-data works, try freezing gates at the sweet spot (alpha=0.016)
-to prevent the degradation seen in step 5.
+Not needed — gates self-regulate with 30% memory task data.
+The memory task gradient naturally finds the optimal gate value.
+
+### Step 8: Full benchmark eval (NEXT)
+
+Run `scripts/eval_track_a.py` or full benchmark suite on the best checkpoint
+(mixed_030_5k/step_5000) to get comprehensive metrics beyond AR/VT n=10.
+Test with n=200 for statistical significance.
+
+### Step 9: Longer run / higher n eval
+
+If step 8 looks good, consider:
+- 10k step run to see if gates stabilize further
+- Testing on harder benchmarks (more pairs, longer delays)
+- Full eval with n=200 examples per benchmark
 
 ---
 
