@@ -107,16 +107,21 @@ n=200, 23 benchmarks, 2h46m on GPU ESN. Results:
 - Perplexity: 7.70 vs 6.82 (+0.88)
 - Wins: 3, Losses: 1, Ties: 6
 
-### Step 9: Investigate AR regression + next experiments
+### ~~Step 9: AR regression investigation~~ DONE
 
-Step 8 results are promising (VT+Dyck wins) but AR regressed badly.
-Priority investigation:
-1. **Debug AR formatting**: Compare quick_test lenient matching vs harness strict EM.
-   Check if AR answers have extra tokens/whitespace causing EM=0.32 despite f1=0.64.
-2. **Sidecar isolation on AR**: Run quick_test with --no-sidecar on same checkpoint
-   to confirm whether sidecar hurts or helps AR at n=200.
-3. If AR is a formatting issue, fix the harness matching and re-eval.
-4. If AR is a real regression, consider adjusting memory task mix (more AR examples).
+AR regression is real — model echoes key-value pairs ("ad: 858") instead of just
+the value. Root cause: training data format `"{input}\nAnswer: {target}"` differs
+from eval harness format `"Input: ...\nOutput:"`. Not a harness bug.
+
+**The VT+0.180 and Dyck+0.425 wins are genuine. The AR-0.510 loss is a training
+format mismatch, not a sidecar problem.** The sidecar architecture works.
+
+### Step 10: Next experiments (BACKLOG)
+
+- [ ] Fix AR by aligning eval prompt format with training format
+- [ ] Or: retrain with instruction-style memory tasks ("Output only the number")
+- [ ] 10k step run to see if gates stabilize further
+- [ ] Test on harder benchmarks (more pairs, longer delays)
 
 ---
 

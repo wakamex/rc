@@ -771,3 +771,27 @@ GPU ESN (PID 3484740). New estimate: ~3h for full 23-benchmark suite.
    The quick_test used lenient matching; the harness uses strict exact_match.
 4. **Perplexity +0.88**: Modest cost from mixed training. The 30% memory task ratio
    slightly degrades general language modeling as expected.
+
+### Step 9: AR regression investigation
+
+Investigated AR regression. The model outputs key-value pairs ("ad: 858") instead of
+just the value ("858") — it echoes context fragments before the answer. This is NOT a
+formatting/prefix issue (unlike "Answer: X" which would be simple to strip).
+
+Examples from Track A model on AR (harness prompt format `Input: ...\nOutput:`):
+- target=[858] raw=[ad: 858] — echoes the key
+- target=[674] raw=[fox: 127] — wrong key AND wrong value
+- target=[263] raw=[263] — correct
+- target=[338] raw=[over: 338] — echoes a distractor word
+
+The vanilla model outputs clean numbers (858, 674, etc.) on the same prompt.
+
+**Root cause:** The mixed training data uses `"{ex.input}\nAnswer: {ex.target}"` format
+which includes the full context. The model may be learning to echo key-value associations
+from the input rather than extracting just the value. The harness prompt format
+(`Input: ...\nOutput:`) differs from the training format, causing distribution shift.
+
+**Possible fixes:**
+1. Align eval prompt format with training format
+2. Use instruction tuning format for memory task training data
+3. Add "just output the number" instruction to training examples
