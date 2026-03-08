@@ -595,3 +595,30 @@ AR=10/10 across all steps (no degradation).
 4. Pure FineWeb sidecar learns to inject noise; mixed sidecar learns to inject memory
 5. Loss is slightly higher (ppl=21 vs 17 for 10%) because memory tasks are harder
    than random text prediction, but this is a feature, not a bug
+
+### 03:05 — Step 6d: 5000-step 30% mix — IN PROGRESS
+
+Running 5000 steps with the winning config (30% memory tasks). Saves every 1000 steps.
+Expected ~8h. Will test at each checkpoint to verify VT continues improving.
+
+### 04:30 — Step 6d: step 1000 checkpoint
+
+Gates: alpha=0.031 (consistent). **AR=10/10, VT=8/10** — matches 2k run at same step.
+Reproducible result across runs.
+
+### 06:05 — Step 6d: step 2000 checkpoint
+
+Gates: alpha=0.062. **AR=10/10, VT=8/10** — VT holding steady!
+2k run gave VT=9/10 at this point; slight variance but no degradation.
+Pure FineWeb at same gate gave VT=6/10. Sidecar learning confirmed stable.
+
+**5k run progress (30% mix):**
+
+| Step | Gate | VT | Note |
+|------|------|-----|------|
+| 1000 | 0.031 | 8/10 | matches 2k run |
+| 2000 | 0.062 | 8/10 | stable (2k run: 9/10, pure FineWeb: 6/10) |
+| 3000 | — | — | pending (~2h) |
+
+This is now the LONGEST sidecar run without VT degradation. Pure FineWeb was at
+VT=3/10 by step 3000. Step 3000 will be the real test — new territory.

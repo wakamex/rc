@@ -76,9 +76,6 @@ learns language modeling, not recall.
 - `src/data/dataloader.py`: `_memory_task_examples()` + `build_mixed_dataloader()`
 - `scripts/train_track_a_readonly.py`: `--memory_task_ratio`, `--freeze_gates_at`
 
-**6a (IN PROGRESS):** 500 steps, 10% memory tasks, gate_warmup=0.1.
-Compare with pure-FineWeb baseline (VT=9/10 at step 500).
-
 **6a:** DONE. 500 steps, 10% mix: VT=8/10, sidecar confirmed.
 **6c:** DONE. 2000 steps, 10% mix: VT non-monotonic 8→6→9→6 (vs pure FineWeb 9→6→3).
   Mixed data prevents VT collapse but doesn't fully stabilize it.
@@ -86,7 +83,8 @@ Compare with pure-FineWeb baseline (VT=9/10 at step 500).
 **6b:** DONE. 2000 steps, 30% mix: VT monotonically improving 7→8→8→9!
   **Best result: VT=9/10 at step 2000 (alpha=0.062)**. Pure FineWeb gave 6/10 at same gate.
 
-**6d (NEXT):** Extend 30% mix to 5000 steps. Test if VT continues improving.
+**6d (IN PROGRESS):** 5000 steps, 30% mix. Started ~03:05. ETA ~11:00.
+  Saves every 1000 steps. Test each checkpoint as it appears.
   The sidecar is actually learning — longer training should help, not hurt.
 
 ### Step 7: Gate freezing experiment (optional)
