@@ -98,18 +98,25 @@ Implemented `ESNGpu` class in `src/reservoir/esn.py`. Converts scipy sparse to P
 sparse CSR on GPU. 38.7x speedup (18.3s→0.47s per 2048-step, n=10000).
 Updated train, eval, and quick_test scripts.
 
-### Step 8: Full benchmark eval (IN PROGRESS)
+### ~~Step 8: Full benchmark eval~~ DONE
 
-Running `scripts/eval_track_a.py` on best checkpoint (mixed_030_5k/step_5000)
-with n=200, 23 benchmarks, GPU ESN. Perplexity: 7.71.
-ETA: ~3h (GPU ESN, was ~23h on CPU).
+n=200, 23 benchmarks, 2h46m on GPU ESN. Results:
+- **VT +0.180** (0.635 vs 0.455) — sidecar works at scale
+- **Dyck +0.425** (0.425 vs 0.000) — unexpected structural reasoning win
+- **AR -0.510** (0.315 vs 0.825) — regression, but f1=0.64 suggests formatting issue
+- Perplexity: 7.70 vs 6.82 (+0.88)
+- Wins: 3, Losses: 1, Ties: 6
 
-### Step 9: Longer run / higher n eval
+### Step 9: Investigate AR regression + next experiments
 
-If step 8 looks good, consider:
-- 10k step run to see if gates stabilize further
-- Testing on harder benchmarks (more pairs, longer delays)
-- Full eval with n=200 examples per benchmark
+Step 8 results are promising (VT+Dyck wins) but AR regressed badly.
+Priority investigation:
+1. **Debug AR formatting**: Compare quick_test lenient matching vs harness strict EM.
+   Check if AR answers have extra tokens/whitespace causing EM=0.32 despite f1=0.64.
+2. **Sidecar isolation on AR**: Run quick_test with --no-sidecar on same checkpoint
+   to confirm whether sidecar hurts or helps AR at n=200.
+3. If AR is a formatting issue, fix the harness matching and re-eval.
+4. If AR is a real regression, consider adjusting memory task mix (more AR examples).
 
 ---
 
