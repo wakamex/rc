@@ -622,3 +622,24 @@ Pure FineWeb at same gate gave VT=6/10. Sidecar learning confirmed stable.
 
 This is now the LONGEST sidecar run without VT degradation. Pure FineWeb was at
 VT=3/10 by step 3000. Step 3000 will be the real test — new territory.
+
+### 07:30 — Step 6d: step 3000 checkpoint — NEW TERRITORY
+
+Gates: alpha=0.093. **AR=10/10, VT=7/10**.
+
+**This is the critical comparison point.** At the same gate alpha=0.093:
+- Pure FineWeb: **VT=3/10** (collapsed)
+- 30% mix: **VT=7/10** (holding strong)
+
+**5k run progress (30% mix):**
+
+| Step | Gate | 30% mix VT | Pure FineWeb VT |
+|------|------|-----------|-----------------|
+| 1000 | 0.031 | 8/10 | — |
+| 2000 | 0.062 | 8/10 | 6/10 |
+| 3000 | 0.093 | **7/10** | **3/10** |
+| 4000 | ~0.124 | pending | — |
+| 5000 | ~0.155 | pending | — |
+
+VT slightly down from 8→7 but far from collapsing. Steps 4000-5000 are fully
+uncharted — we've never run with gates this open before.
