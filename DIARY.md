@@ -740,4 +740,8 @@ GPU ESN (PID 3484740). New estimate: ~3h for full 23-benchmark suite.
 ### Step 8: Full benchmark eval (IN PROGRESS)
 
 Running `eval_track_a.py` on best checkpoint (mixed_030_5k/step_5000) with n=200,
-23 benchmarks, GPU ESN. Perplexity: **7.71**.
+23 benchmarks, GPU ESN. Perplexity: **7.71** (vanilla baseline: 6.82 — slight
+degradation from mixed training, expected).
+
+Actual pace: ~10.7 min/benchmark × 23 = ~4.1h total. PID 3484740.
+Vanilla baseline (qwen35_vanilla.json, n=200) already exists for comparison.
