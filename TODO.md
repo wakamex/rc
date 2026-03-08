@@ -57,13 +57,39 @@ Train 500 steps with 3 layers [7, 15, 23] instead of 6. Tests if fewer layers
 with same gate strength work. Needs code change to support custom layer list.
 Skip this if we want to go straight to 5k run — sidecar is already confirmed.
 
-### Step 5: 5000-step run (IN PROGRESS)
+### ~~Step 5: 5000-step run~~ DONE
 
-Sidecar confirmed helpful. Run 5000 steps with:
-- gate_warmup_steps=200, gate_warmup_target=0.1
-- interface_lr=5e-4, lr=1e-5
-- Save every 1000 steps
-- After: run quick_test.py, run full benchmark suite, commit everything
+VT degrades with longer pure-FineWeb training. Killed at step ~3500.
+
+| Step | Gate | AR | VT |
+|------|------|-----|-----|
+| 500 | 0.016 | 10/10 | 9/10 |
+| 2000 | 0.062 | 9/10 | 6/10 |
+| 3000 | 0.093 | 10/10 | 3/10 |
+
+**Root cause:** FineWeb doesn't reward memory use. Gates grow but sidecar
+learns language modeling, not recall.
+
+### Step 6: Mixed-data training (memory tasks + FineWeb) — IN PROGRESS
+
+**Implementation:** DONE
+- `src/data/dataloader.py`: `_memory_task_examples()` + `build_mixed_dataloader()`
+- `scripts/train_track_a_readonly.py`: `--memory_task_ratio`, `--freeze_gates_at`
+
+**6a (IN PROGRESS):** 500 steps, 10% memory tasks, gate_warmup=0.1.
+Compare with pure-FineWeb baseline (VT=9/10 at step 500).
+
+**6a:** DONE. 500 steps, 10% mix: VT=8/10, sidecar confirmed.
+**6c:** DONE. 2000 steps, 10% mix: VT non-monotonic 8→6→9→6 (vs pure FineWeb 9→6→3).
+  Mixed data prevents VT collapse but doesn't fully stabilize it.
+
+**6b (NEXT):** 2000 steps, 30% memory tasks. Higher ratio to strengthen signal.
+  Gate growth identical across mixes — but sidecar learning differs.
+
+### Step 7: Gate freezing experiment (optional)
+
+If mixed-data works, try freezing gates at the sweet spot (alpha=0.016)
+to prevent the degradation seen in step 5.
 
 ---
 

@@ -72,6 +72,8 @@ def parse_args() -> argparse.Namespace:
                    help="Linearly ramp gate_alpha from 0 to --gate_warmup_target over N steps.")
     p.add_argument("--gate_warmup_target", type=float, default=0.5,
                    help="Target gate_alpha value at end of warmup ramp.")
+    p.add_argument("--freeze_gates_at", type=float, default=None,
+                   help="Freeze gate_alpha at this value (not learnable). Useful to prevent gate drift.")
 
     # LoRA
     p.add_argument("--no_lora", action="store_true",
@@ -101,6 +103,8 @@ def parse_args() -> argparse.Namespace:
     # Data
     p.add_argument("--dataset_name", default="HuggingFaceFW/fineweb")
     p.add_argument("--dataset_config", default="sample-10BT")
+    p.add_argument("--memory_task_ratio", type=float, default=0.0,
+                   help="Fraction of batches from synthetic memory tasks (0.0=pure FineWeb).")
 
     # Output
     p.add_argument("--output_dir", default="checkpoints/track_a_readonly")
@@ -145,7 +149,7 @@ def apply_config_overrides(args: argparse.Namespace, config: dict[str, Any]) -> 
 # ---------------------------------------------------------------------------
 
 
-from src.data.dataloader import build_dataloader  # noqa: E402
+from src.data.dataloader import build_dataloader, build_mixed_dataloader  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -468,7 +472,14 @@ def train(args: argparse.Namespace) -> None:
 
     # --- Optimizer ---
     # LoRA params at lora_lr; sidecar params at interface_lr
-    sidecar_params = list(sidecar_bundle.parameters())
+    # If gates are frozen, exclude gate_alpha from optimizer
+    if args.freeze_gates_at is not None:
+        for sidecar in sidecar_bundle.sidecars.values():
+            sidecar.gate_alpha.requires_grad_(False)
+            sidecar.gate_alpha.data.fill_(args.freeze_gates_at)
+        logger.info("Gates frozen at alpha=%.4f (tanh=%.4f)",
+                    args.freeze_gates_at, torch.tanh(torch.tensor(args.freeze_gates_at)).item())
+    sidecar_params = [p for p in sidecar_bundle.parameters() if p.requires_grad]
     param_groups = [{"params": sidecar_params, "lr": args.interface_lr}]
 
     if use_lora:
@@ -493,15 +504,27 @@ def train(args: argparse.Namespace) -> None:
                              milestones=[args.warmup_steps])
 
     # --- Data ---
-    logger.info("Building data loader from %s / %s", args.dataset_name, args.dataset_config)
-    loader = build_dataloader(
-        tokenizer._tok,  # type: ignore[attr-defined]
-        dataset_name=args.dataset_name,
-        dataset_config=args.dataset_config,
-        max_seq_length=args.max_seq_length,
-        batch_size=args.batch_size,
-        seed=args.seed,
-    )
+    logger.info("Building data loader from %s / %s (memory_task_ratio=%.2f)",
+                args.dataset_name, args.dataset_config, args.memory_task_ratio)
+    if args.memory_task_ratio > 0:
+        loader = build_mixed_dataloader(
+            tokenizer._tok,  # type: ignore[attr-defined]
+            dataset_name=args.dataset_name,
+            dataset_config=args.dataset_config,
+            max_seq_length=args.max_seq_length,
+            batch_size=args.batch_size,
+            memory_task_ratio=args.memory_task_ratio,
+            seed=args.seed,
+        )
+    else:
+        loader = build_dataloader(
+            tokenizer._tok,  # type: ignore[attr-defined]
+            dataset_name=args.dataset_name,
+            dataset_config=args.dataset_config,
+            max_seq_length=args.max_seq_length,
+            batch_size=args.batch_size,
+            seed=args.seed,
+        )
 
     # --- Training loop ---
     output_dir = Path(args.output_dir)
@@ -553,6 +576,11 @@ def train(args: argparse.Namespace) -> None:
                 # Warmup done — gate_alpha is now at target, let it be learnable
                 logger.info(f"Gate warmup complete at step {train_step}, "
                             f"gate_alpha={args.gate_warmup_target:.3f}")
+
+        # --- Freeze gates at fixed value (prevents drift on generic data) ---
+        if args.freeze_gates_at is not None:
+            for sidecar in sidecar_bundle.sidecars.values():
+                sidecar.gate_alpha.data.fill_(args.freeze_gates_at)
 
         # --- Forward pass (hooks inject reservoir states at selected layers) ---
         with torch.autocast(device_type=device.type, dtype=dtype):
