@@ -859,3 +859,31 @@ Completed at ~00:30. Both models evaluated fairly with standardized normalizatio
 The reservoir sidecar improves 9 out of 10 benchmark families with zero regressions.
 Perfect scores on PasskeyRetrieval and AssociativeRecall. The only cost is +0.90
 perplexity — a modest price for massive memory and reasoning improvements.
+
+### Ablation 1: LoRA-only (sidecar disabled at inference)
+
+Same checkpoint (mixed_030_5k/step_5000) but sidecar hooks removed at eval time.
+This isolates the sidecar's contribution from the LoRA+training effect.
+
+| Task | Vanilla | LoRA-only | LoRA+SC | SC delta |
+|------|---------|-----------|---------|----------|
+| PasskeyRetrieval | 0.000 | 0.000 | **1.000** | **+1.000** |
+| VariableTracking | 0.000 | 0.000 | **0.660** | **+0.660** |
+| MultiDigitArithmetic | 0.625 | 0.585 | **0.970** | **+0.385** |
+| ModularArithmetic | 0.005 | 0.000 | **0.380** | **+0.380** |
+| LengthExtrapolation | 0.000 | 0.000 | **0.290** | **+0.290** |
+| ProgramTrace | 0.000 | 0.000 | **0.285** | **+0.285** |
+| AssociativeRecall | 0.855 | 0.890 | **1.000** | **+0.110** |
+| AlgorithmicTransfer | 0.000 | 0.000 | **0.090** | **+0.090** |
+| DyckLanguage | 0.085 | 0.150 | 0.125 | -0.025 |
+| CompositionalGen. | 0.005 | 0.005 | 0.015 | +0.010 |
+
+**Perplexity:** Vanilla=6.82, LoRA-only=6.84, LoRA+SC=7.72
+
+**Conclusion:** LoRA alone barely changes results from vanilla (AR 0.855→0.890,
+Dyck 0.085→0.150, everything else flat). The sidecar is responsible for nearly all
+gains. 8 of 10 benchmarks show sidecar delta > +0.09.
+
+**Ablation 2 (queued):** Training LoRA on same 30% mix data but with gates frozen
+at 0 (sidecar zeroed during training). This tests whether the training data alone
+teaches memory tasks without the reservoir. ETA ~9h.

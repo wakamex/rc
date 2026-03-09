@@ -129,7 +129,17 @@ V3 eval with native benchmark prompts + standard prefix stripping:
 - MultiDigitArithmetic: 0.625→0.970, ModularArith: 0.005→0.380
 - Perplexity: +0.90 (7.72 vs 6.82)
 
-### Step 11: Next experiments (BACKLOG)
+### ~~Step 11: Ablation 1 — LoRA-only (sidecar disabled at inference)~~ DONE
+
+LoRA alone barely changes vanilla scores. Sidecar is responsible for 8/10 wins.
+SC delta: PasskeyRetrieval +1.000, VT +0.660, MultiDigitArith +0.385, etc.
+
+### Step 12: Ablation 2 — LoRA trained without sidecar (IN PROGRESS)
+
+Training LoRA on same 30% mix with gates frozen at 0 (sidecar zeroed).
+Tests whether training data alone teaches memory tasks. ETA ~9h.
+
+### Step 13: Next experiments (BACKLOG)
 
 - [ ] 10k step run to see if gates stabilize further
 - [ ] Test on harder benchmarks (more pairs, longer delays)
