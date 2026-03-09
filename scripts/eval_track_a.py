@@ -89,16 +89,17 @@ class ReservoirEvalAdapter:
 
         prompt_len = input_ids.shape[-1]
 
-        # Compute reservoir states from input embeddings
-        with torch.no_grad():
-            embeddings = self._embed_layer(input_ids)  # (1, T, H)
+        # Compute reservoir states from input embeddings (skip if no sidecar)
+        if self._esn is not None and self._hook_manager is not None:
+            with torch.no_grad():
+                embeddings = self._embed_layer(input_ids)  # (1, T, H)
 
-        self._esn.reset()
-        emb_np = embeddings[0].detach().float().cpu().numpy()  # (T, H)
-        states = self._esn.forward(emb_np)  # (T, reservoir_dim)
+            self._esn.reset()
+            emb_np = embeddings[0].detach().float().cpu().numpy()  # (T, H)
+            states = self._esn.forward(emb_np)  # (T, reservoir_dim)
 
-        # Set reservoir states for hooks: (1, T, reservoir_dim)
-        self._hook_manager.set_reservoir_states(states[None])
+            # Set reservoir states for hooks: (1, T, reservoir_dim)
+            self._hook_manager.set_reservoir_states(states[None])
 
         # Generate
         with torch.no_grad():
@@ -109,7 +110,8 @@ class ReservoirEvalAdapter:
                 **kwargs,
             )
 
-        self._hook_manager.clear_reservoir_states()
+        if self._hook_manager is not None:
+            self._hook_manager.clear_reservoir_states()
 
         elapsed = time.perf_counter() - t0
         self._latencies.append(elapsed)
@@ -165,15 +167,18 @@ def compute_perplexity(
             ids = tokenizer.encode(text, padding=False, truncation=True, max_length=512)
             ids = ids.to(device)
 
-            # Compute reservoir states
-            embeddings = embed_layer(ids)
-            esn.reset()
-            emb_np = embeddings[0].detach().float().cpu().numpy()
-            states = esn.forward(emb_np)  # (T, reservoir_dim)
-            hook_manager.set_reservoir_states(states[None])
+            # Compute reservoir states (skip if no sidecar)
+            if esn is not None and hook_manager is not None:
+                embeddings = embed_layer(ids)
+                esn.reset()
+                emb_np = embeddings[0].detach().float().cpu().numpy()
+                states = esn.forward(emb_np)  # (T, reservoir_dim)
+                hook_manager.set_reservoir_states(states[None])
 
             outputs = model(ids, labels=ids)
-            hook_manager.clear_reservoir_states()
+
+            if hook_manager is not None:
+                hook_manager.clear_reservoir_states()
 
             n_tokens = ids.shape[-1] - 1
             if n_tokens <= 0:
@@ -237,6 +242,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--compare", default="results/baselines/qwen35_vanilla.json",
                     help="Baseline results JSON for comparison")
     p.add_argument("--skip-chaos", action="store_true")
+    p.add_argument("--no-sidecar", action="store_true",
+                    help="Disable sidecar hooks (LoRA-only ablation)")
     return p.parse_args()
 
 
@@ -266,44 +273,48 @@ def main() -> None:
     model = PeftModel.from_pretrained(model, str(lora_path))
     model.eval()
 
-    # --- Build ESN reservoir (same config as training) ---
-    print("Building ESN reservoir...")
-    from src.reservoir.esn import ESN
-    from src.types import ReservoirConfig
-
-    reservoir_cfg = ReservoirConfig(
-        size=10000,
-        spectral_radius=0.9,
-        leak_rate=0.5,
-        input_scaling=1.0,
-        sparsity=0.01,
-        seed=42,
-    )
-    esn_cpu = ESN(reservoir_cfg, input_dim=hidden_dim)
-    esn = esn_cpu.to_gpu(args.device) if device.type == "cuda" else esn_cpu
-
-    # --- Build sidecar bundle and load weights ---
-    num_layers = model.config.num_hidden_layers
-    sidecar_layers = list(range(3, num_layers, 4))
-    print(f"Building sidecar at layers {sidecar_layers}...")
-
-    sidecar_bundle = ReadOnlySidecarBundle(
-        layer_indices=sidecar_layers,
-        reservoir_dim=10000,
-        hidden_dim=hidden_dim,
-        num_heads=8,
-        dropout=0.0,
-    )
-
-    sidecar_weights_path = ckpt / "sidecar_weights.pt"
-    print(f"Loading sidecar weights from {sidecar_weights_path}...")
-    sidecar_bundle.load_state_dict(torch.load(sidecar_weights_path, map_location=device))
-    sidecar_bundle = sidecar_bundle.to(device).to(dtype)
-    sidecar_bundle.eval()
-
-    # --- Register hooks ---
-    hook_manager = SidecarHookManager(model, sidecar_bundle, sidecar_layers)
+    # --- Build ESN reservoir + sidecar (skip if --no-sidecar) ---
+    esn = None
+    hook_manager = None
     embed_layer = model.get_input_embeddings()
+
+    if not args.no_sidecar:
+        print("Building ESN reservoir...")
+        from src.reservoir.esn import ESN
+        from src.types import ReservoirConfig
+
+        reservoir_cfg = ReservoirConfig(
+            size=10000,
+            spectral_radius=0.9,
+            leak_rate=0.5,
+            input_scaling=1.0,
+            sparsity=0.01,
+            seed=42,
+        )
+        esn_cpu = ESN(reservoir_cfg, input_dim=hidden_dim)
+        esn = esn_cpu.to_gpu(args.device) if device.type == "cuda" else esn_cpu
+
+        num_layers = model.config.num_hidden_layers
+        sidecar_layers = list(range(3, num_layers, 4))
+        print(f"Building sidecar at layers {sidecar_layers}...")
+
+        sidecar_bundle = ReadOnlySidecarBundle(
+            layer_indices=sidecar_layers,
+            reservoir_dim=10000,
+            hidden_dim=hidden_dim,
+            num_heads=8,
+            dropout=0.0,
+        )
+
+        sidecar_weights_path = ckpt / "sidecar_weights.pt"
+        print(f"Loading sidecar weights from {sidecar_weights_path}...")
+        sidecar_bundle.load_state_dict(torch.load(sidecar_weights_path, map_location=device))
+        sidecar_bundle = sidecar_bundle.to(device).to(dtype)
+        sidecar_bundle.eval()
+
+        hook_manager = SidecarHookManager(model, sidecar_bundle, sidecar_layers)
+    else:
+        print("Sidecar DISABLED — LoRA-only ablation")
 
     if device.type == "cuda":
         torch.cuda.reset_peak_memory_stats(device)
@@ -320,6 +331,7 @@ def main() -> None:
             baseline_ppl = json.load(f).get("perplexity")
 
     # --- Benchmark suite ---
+    model_label = "qwen3.5-0.8b+lora-only" if args.no_sidecar else "qwen3.5-0.8b+track-a-readonly"
     adapter = ReservoirEvalAdapter(
         model=model,
         tokenizer=tokenizer,
@@ -337,7 +349,7 @@ def main() -> None:
         decode_mode="greedy",
         metrics=["exact_match", "accuracy", "f1"],
         output_file=None,
-        model_name="qwen3.5-0.8b+track-a-readonly",
+        model_name=model_label,
     )
 
     print(f"Running {len(benchmarks)} benchmark tasks ({args.n_examples} examples each)...")
@@ -359,14 +371,15 @@ def main() -> None:
     print(f"  Latency p50={latency['p50_s']*1000:.1f}ms, p95={latency['p95_s']*1000:.1f}ms")
 
     # --- Clean up hooks ---
-    hook_manager.remove_hooks()
+    if hook_manager is not None:
+        hook_manager.remove_hooks()
 
     # --- Save results ---
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     payload = {
-        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "model_name": model_label,
         "checkpoint": str(ckpt),
         "timestamp": time.time(),
         "config": {
@@ -374,8 +387,8 @@ def main() -> None:
             "dtype": args.dtype,
             "n_examples": args.n_examples,
             "max_new_tokens": args.max_new_tokens,
-            "reservoir_size": 10000,
-            "sidecar_layers": sidecar_layers,
+            "reservoir_size": 0 if args.no_sidecar else 10000,
+            "sidecar_enabled": not args.no_sidecar,
             "lora_rank": 16,
         },
         "perplexity": perplexity,
