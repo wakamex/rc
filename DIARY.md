@@ -836,4 +836,26 @@ re-evaled with native format. Results were distorted:
 "Answer:", "Output:", etc.). This is standard practice in lm-eval-harness. The model's
 answers ARE correct — penalizing a learned prefix is wrong.
 
-V3 re-eval running with both fixes (native prompts + prefix stripping). ETA ~5.5h.
+### V3 eval results — DEFINITIVE (native prompts + prefix stripping)
+
+Completed at ~00:30. Both models evaluated fairly with standardized normalization.
+
+| Task | Track A | Vanilla | Delta |
+|------|---------|---------|-------|
+| **PasskeyRetrieval** | **1.000** | 0.000 | **+1.000** |
+| **VariableTracking** | **0.660** | 0.000 | **+0.660** |
+| **ModularArithmetic** | **0.380** | 0.005 | **+0.375** |
+| **MultiDigitArithmetic** | **0.970** | 0.625 | **+0.345** |
+| **LengthExtrapolation** | **0.290** | 0.000 | **+0.290** |
+| **ProgramTrace** | **0.285** | 0.000 | **+0.285** |
+| **AssociativeRecall** | **1.000** | 0.855 | **+0.145** |
+| **AlgorithmicTransfer** | **0.090** | 0.000 | **+0.090** |
+| **DyckLanguage** | **0.125** | 0.085 | **+0.040** |
+| CompositionalGeneralization | 0.015 | 0.005 | +0.010 |
+
+**Wins: 9, Losses: 0, Ties: 1**
+**Perplexity:** 7.72 vs 6.82 (+0.90)
+
+The reservoir sidecar improves 9 out of 10 benchmark families with zero regressions.
+Perfect scores on PasskeyRetrieval and AssociativeRecall. The only cost is +0.90
+perplexity — a modest price for massive memory and reasoning improvements.

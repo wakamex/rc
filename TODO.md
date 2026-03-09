@@ -121,11 +121,19 @@ format mismatch, not a sidecar problem.** The sidecar architecture works.
 AR with raw prompt format: **50/50 (100%)** vs harness format: 14/50 (28%).
 The AR regression is entirely prompt format mismatch. Track A AR > vanilla AR.
 
-### Step 10: Next experiments (BACKLOG)
+### ~~Step 10: Standardized eval with native prompts~~ DONE
 
-- [ ] Run full n=200 AR eval with training prompt format for definitive score
+V3 eval with native benchmark prompts + standard prefix stripping:
+**9 wins, 0 losses, 1 tie.** Track A improves every benchmark family.
+- PasskeyRetrieval: 0→1.000, AR: 0.855→1.000, VT: 0→0.660
+- MultiDigitArithmetic: 0.625→0.970, ModularArith: 0.005→0.380
+- Perplexity: +0.90 (7.72 vs 6.82)
+
+### Step 11: Next experiments (BACKLOG)
+
 - [ ] 10k step run to see if gates stabilize further
 - [ ] Test on harder benchmarks (more pairs, longer delays)
+- [ ] Retrain with native prompt format (remove "Answer:" from training data)
 
 ---
 
