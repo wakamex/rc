@@ -819,3 +819,21 @@ vanilla's 82.5%.
 
 **Conclusion:** The reservoir sidecar improves ALL memory-related benchmarks.
 The only cost is +0.88 perplexity from mixed training.
+
+### Step 10: Prompt format standardization
+
+**Problem:** The eval harness wrapped prompts in `Input: ...\nOutput:` but benchmarks
+already have natural prompts ("What is the value for key 'ad'?"). This is non-standard
+and made results incomparable with published benchmarks.
+
+**Fix 1 — Native prompts:** Removed `Input:/Output:` wrapper from harness. Both models
+re-evaled with native format. Results were distorted:
+- Vanilla: MultiDigitArithmetic jumped 0→0.620, VT dropped 0.455→0.000
+- Track A: Nearly everything dropped to 0 because model outputs "Answer: X" (learned
+  from training data) and strict EM doesn't match.
+
+**Fix 2 — Prefix stripping:** Added standard prefix stripping to `_normalize()` (strips
+"Answer:", "Output:", etc.). This is standard practice in lm-eval-harness. The model's
+answers ARE correct — penalizing a learned prefix is wrong.
+
+V3 re-eval running with both fixes (native prompts + prefix stripping). ETA ~5.5h.
