@@ -134,10 +134,11 @@ V3 eval with native benchmark prompts + standard prefix stripping:
 LoRA alone barely changes vanilla scores. Sidecar is responsible for 8/10 wins.
 SC delta: PasskeyRetrieval +1.000, VT +0.660, MultiDigitArith +0.385, etc.
 
-### Step 12: Ablation 2 — LoRA trained without sidecar (IN PROGRESS)
+### ~~Step 12: Ablation 2 — LoRA trained without sidecar~~ DONE
 
-Training LoRA on same 30% mix with gates frozen at 0 (sidecar zeroed).
-Tests whether training data alone teaches memory tasks. ETA ~9h.
+Most gains come from training data (7/10 benchmarks). Reservoir uniquely
+helps 3 structured reasoning tasks: ModularArith (+0.290), LengthExtrap
+(+0.285), DyckLanguage (+0.125). Reservoir costs +0.94 perplexity.
 
 ### Step 13: Next experiments (BACKLOG)
 

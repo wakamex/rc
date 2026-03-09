@@ -884,6 +884,47 @@ This isolates the sidecar's contribution from the LoRA+training effect.
 Dyck 0.085→0.150, everything else flat). The sidecar is responsible for nearly all
 gains. 8 of 10 benchmarks show sidecar delta > +0.09.
 
-**Ablation 2 (queued):** Training LoRA on same 30% mix data but with gates frozen
-at 0 (sidecar zeroed during training). This tests whether the training data alone
-teaches memory tasks without the reservoir. ETA ~9h.
+### Ablation 2: LoRA trained on same data WITHOUT sidecar — DONE
+
+Trained LoRA on same 30% memory mix for 5000 steps with gates frozen at 0
+(batch_size=1, grad_accum=16). Training: 1.5h. Eval: 52 min.
+
+**4-way comparison (exact match, n=200):**
+
+| Task | Vanilla | LoRA-inf | LoRA-train | LoRA+SC | SC only |
+|------|---------|----------|------------|---------|---------|
+| PasskeyRetrieval | 0.000 | 0.000 | **1.000** | **1.000** | +0.000 |
+| AssociativeRecall | 0.855 | 0.890 | **1.000** | **1.000** | +0.000 |
+| VariableTracking | 0.000 | 0.000 | **0.680** | 0.660 | -0.020 |
+| MultiDigitArithmetic | 0.625 | 0.585 | **0.965** | 0.970 | +0.005 |
+| ProgramTrace | 0.000 | 0.000 | **0.355** | 0.285 | -0.070 |
+| AlgorithmicTransfer | 0.000 | 0.000 | **0.105** | 0.090 | -0.015 |
+| **ModularArithmetic** | 0.005 | 0.000 | 0.090 | **0.380** | **+0.290** |
+| **LengthExtrapolation** | 0.000 | 0.000 | 0.005 | **0.290** | **+0.285** |
+| **DyckLanguage** | 0.085 | 0.150 | 0.000 | **0.125** | **+0.125** |
+| CompositionalGen. | 0.005 | 0.005 | **0.070** | 0.015 | -0.055 |
+
+**Perplexity:** Vanilla=6.82, LoRA-inf=6.84, LoRA-train=6.78, LoRA+SC=7.72
+
+- **LoRA-inf**: Same checkpoint, sidecar disabled at inference
+- **LoRA-train**: New LoRA trained on same data, never had sidecar
+- **LoRA+SC**: Full Track A (LoRA + sidecar)
+- **SC only**: LoRA+SC minus LoRA-train (reservoir contribution)
+
+**Key findings:**
+1. **Most gains come from training data, not the reservoir.** LoRA-train matches or
+   exceeds LoRA+SC on 7/10 benchmarks. PasskeyRetrieval, AR, VT, MultiDigitArith,
+   ProgramTrace — all learned from training data alone.
+2. **The reservoir uniquely helps 3 benchmarks:** ModularArithmetic (+0.290),
+   LengthExtrapolation (+0.285), DyckLanguage (+0.125). These are tasks requiring
+   structured/recursive state tracking beyond what LoRA can internalize.
+3. **The reservoir hurts perplexity:** 7.72 vs 6.78 (+0.94). The sidecar adds noise
+   to general language modeling.
+4. **LoRA-train perplexity is actually BETTER than vanilla** (6.78 vs 6.82).
+   The mixed training data slightly improves general LM ability.
+
+**Conclusion:** The reservoir sidecar architecture provides genuine value for
+structured reasoning tasks (modular arithmetic, length extrapolation, Dyck language)
+but most memory benchmark gains come from fine-tuning on memory task data. The
+reservoir is not needed for associative recall or variable tracking — LoRA alone
+learns these from the training data.

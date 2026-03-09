@@ -1,0 +1,923 @@
+{
+  "model_name": "qwen3.5-0.8b+lora-only",
+  "checkpoint": "checkpoints/ablation_lora_nosidecar/step_5000",
+  "timestamp": 1773047857.0259564,
+  "config": {
+    "device": "cuda",
+    "dtype": "bf16",
+    "n_examples": 200,
+    "max_new_tokens": 64,
+    "reservoir_size": 0,
+    "sidecar_enabled": false,
+    "lora_rank": 16
+  },
+  "perplexity": 6.77818438726181,
+  "vram": {
+    "allocated_mb": 1445.66015625,
+    "peak_mb": 1593.27392578125
+  },
+  "latency": {
+    "p50_s": 0.3330922103486955,
+    "p95_s": 2.045670513063669
+  },
+  "eval_elapsed_seconds": 3093.061501807999,
+  "results": [
+    {
+      "task": "PasskeyRetrieval",
+      "metric": "exact_match",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "PasskeyRetrieval",
+      "metric": "accuracy",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "PasskeyRetrieval",
+      "metric": "f1",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "PasskeyRetrieval",
+      "metric": "exact_match",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "PasskeyRetrieval",
+      "metric": "accuracy",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "PasskeyRetrieval",
+      "metric": "f1",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "VariableTracking",
+      "metric": "exact_match",
+      "value": 0.68,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "VariableTracking",
+      "metric": "accuracy",
+      "value": 0.68,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "VariableTracking",
+      "metric": "f1",
+      "value": 0.68,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "VariableTracking",
+      "metric": "exact_match",
+      "value": 0.56,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "VariableTracking",
+      "metric": "accuracy",
+      "value": 0.56,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "VariableTracking",
+      "metric": "f1",
+      "value": 0.56,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AssociativeRecall",
+      "metric": "exact_match",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AssociativeRecall",
+      "metric": "accuracy",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AssociativeRecall",
+      "metric": "f1",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AssociativeRecall",
+      "metric": "exact_match",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AssociativeRecall",
+      "metric": "accuracy",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AssociativeRecall",
+      "metric": "f1",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "MultiDigitArithmetic",
+      "metric": "exact_match",
+      "value": 0.965,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "MultiDigitArithmetic",
+      "metric": "accuracy",
+      "value": 0.965,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "MultiDigitArithmetic",
+      "metric": "f1",
+      "value": 0.965,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "MultiDigitArithmetic",
+      "metric": "exact_match",
+      "value": 0.935,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "MultiDigitArithmetic",
+      "metric": "accuracy",
+      "value": 0.935,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "MultiDigitArithmetic",
+      "metric": "f1",
+      "value": 0.935,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "MultiDigitArithmetic",
+      "metric": "exact_match",
+      "value": 0.125,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "MultiDigitArithmetic",
+      "metric": "accuracy",
+      "value": 0.125,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "MultiDigitArithmetic",
+      "metric": "f1",
+      "value": 0.125,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "ModularArithmetic",
+      "metric": "exact_match",
+      "value": 0.09,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "ModularArithmetic",
+      "metric": "accuracy",
+      "value": 0.09,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "ModularArithmetic",
+      "metric": "f1",
+      "value": 0.09333333333333334,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "DyckLanguage",
+      "metric": "exact_match",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "DyckLanguage",
+      "metric": "accuracy",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "DyckLanguage",
+      "metric": "f1",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "DyckLanguage",
+      "metric": "exact_match",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "DyckLanguage",
+      "metric": "accuracy",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "DyckLanguage",
+      "metric": "f1",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "ProgramTrace",
+      "metric": "exact_match",
+      "value": 0.355,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "ProgramTrace",
+      "metric": "accuracy",
+      "value": 0.355,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "ProgramTrace",
+      "metric": "f1",
+      "value": 0.355,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "ProgramTrace",
+      "metric": "exact_match",
+      "value": 0.265,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "ProgramTrace",
+      "metric": "accuracy",
+      "value": 0.265,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "ProgramTrace",
+      "metric": "f1",
+      "value": 0.265,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "CompositionalGeneralization",
+      "metric": "exact_match",
+      "value": 0.07,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "CompositionalGeneralization",
+      "metric": "accuracy",
+      "value": 0.07,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "CompositionalGeneralization",
+      "metric": "f1",
+      "value": 0.08777777777777779,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "CompositionalGeneralization",
+      "metric": "exact_match",
+      "value": 0.045,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "CompositionalGeneralization",
+      "metric": "accuracy",
+      "value": 0.045,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "CompositionalGeneralization",
+      "metric": "f1",
+      "value": 0.06708333333333333,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "LengthExtrapolation",
+      "metric": "exact_match",
+      "value": 0.005,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "LengthExtrapolation",
+      "metric": "accuracy",
+      "value": 0.005,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "LengthExtrapolation",
+      "metric": "f1",
+      "value": 0.02166666666666667,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "LengthExtrapolation",
+      "metric": "exact_match",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "LengthExtrapolation",
+      "metric": "accuracy",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "LengthExtrapolation",
+      "metric": "f1",
+      "value": 0.000909090909090909,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "LengthExtrapolation",
+      "metric": "exact_match",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "LengthExtrapolation",
+      "metric": "accuracy",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "LengthExtrapolation",
+      "metric": "f1",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "exact_match",
+      "value": 0.015,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "accuracy",
+      "value": 0.015,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "f1",
+      "value": 0.09273707773707773,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "exact_match",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "accuracy",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "f1",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "exact_match",
+      "value": 0.105,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "accuracy",
+      "value": 0.105,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "f1",
+      "value": 0.105,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "exact_match",
+      "value": 0.03,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "accuracy",
+      "value": 0.03,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "f1",
+      "value": 0.03,
+      "config": {
+        "model_name": "qwen3.5-0.8b+lora-only",
+        "git_hash": "03c1b97",
+        "timestamp": 1773044763.9684508,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    }
+  ]
+}
