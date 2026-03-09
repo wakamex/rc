@@ -40,7 +40,15 @@ class EvalConfig:
 
 
 def _normalize(text: str) -> str:
-    return text.strip().lower()
+    text = text.strip().lower()
+    # Strip common answer prefixes (standard in lm-eval-harness).
+    for prefix in ("answer:", "output:", "the answer is", "result:"):
+        if text.startswith(prefix):
+            text = text[len(prefix):].strip()
+            break
+    # First line only — ignore explanations after the answer.
+    text = text.split("\n")[0].strip()
+    return text
 
 
 def exact_match(prediction: str, target: str) -> float:
