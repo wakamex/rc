@@ -19,3 +19,6 @@ build/
 # Training artifacts
 checkpoints/
 .swarm/
+
+# Claude Code
+.claude/
