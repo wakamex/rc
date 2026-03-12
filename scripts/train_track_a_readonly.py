@@ -645,6 +645,15 @@ def train(args: argparse.Namespace) -> None:
     if hasattr(model, "save_pretrained"):
         model.save_pretrained(str(final_dir / "lora_adapter"))
     torch.save(sidecar_bundle.state_dict(), final_dir / "sidecar_weights.pt")
+    # Save sidecar config for sprint_eval
+    sidecar_config = {
+        "reservoir_size": args.reservoir_size,
+        "sidecar_layers": sidecar_layers,
+        "num_heads": args.num_heads,
+        "gate_init": args.gate_init,
+    }
+    with (final_dir / "sidecar_config.json").open("w") as f:
+        json.dump(sidecar_config, f)
 
     # Clean up hooks
     hook_manager.remove_hooks()

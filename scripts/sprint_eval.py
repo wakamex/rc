@@ -135,25 +135,39 @@ def main():
     embed_layer = model.get_input_embeddings()
 
     if not no_sidecar:
+        # Load sidecar config if saved, otherwise use defaults
+        import json
+        config_path = Path(ckpt) / "sidecar_config.json"
+        if config_path.exists():
+            with open(config_path) as f:
+                sc_cfg = json.load(f)
+            reservoir_size = sc_cfg["reservoir_size"]
+            sidecar_layers = sc_cfg["sidecar_layers"]
+            num_heads = sc_cfg.get("num_heads", 8)
+            gate_init = sc_cfg.get("gate_init", 0.0)
+        else:
+            reservoir_size = 10000
+            num_layers = model.config.num_hidden_layers
+            sidecar_layers = list(range(3, num_layers, 4))
+            num_heads = 8
+            gate_init = 0.05
+
         reservoir_cfg = ReservoirConfig(
-            size=10000, spectral_radius=0.9, leak_rate=0.5,
+            size=reservoir_size, spectral_radius=0.9, leak_rate=0.5,
             input_scaling=1.0, sparsity=0.01, seed=42,
         )
         esn_cpu = ESN(reservoir_cfg, input_dim=hidden_dim)
         esn = esn_cpu.to_gpu(str(device)) if device.type == "cuda" else esn_cpu
 
-        num_layers = model.config.num_hidden_layers
-        sidecar_layers = list(range(3, num_layers, 4))
-
         sidecar_weights_path = Path(ckpt) / "sidecar_weights.pt"
         if sidecar_weights_path.exists():
             sidecar_bundle = ReadOnlySidecarBundle(
                 layer_indices=sidecar_layers,
-                reservoir_dim=10000,
+                reservoir_dim=reservoir_size,
                 hidden_dim=hidden_dim,
-                num_heads=8,
+                num_heads=num_heads,
                 dropout=0.0,
-                gate_init=0.05,  # trained gates settle at ~0.044-0.059
+                gate_init=gate_init,
             )
             # strict=False: older checkpoints lack gate_alpha (added later)
             sidecar_bundle.load_state_dict(torch.load(sidecar_weights_path, map_location=device), strict=False)
