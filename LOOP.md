@@ -30,9 +30,20 @@ Read these files for full context before your first experiment:
 
 Do NOT read `DIARY.md` — it's a 900-line chronological log. `RESULTS.md` has everything you need.
 
+## Agent Conventions
+
+Multiple agents may run this loop in separate worktrees off the same file. Use your row:
+
+| Agent  | Branch prefix | Commit prefix | Checkpoint dir         |
+|--------|---------------|---------------|------------------------|
+| Claude | `claude/`     | `CLAUDE:`     | `checkpoints/sprint`   |
+| GPT    | `gpt/`        | `GPT:`        | `checkpoints/sprint`   |
+
+Only one agent trains at a time (single GPU, 24GB). Agents run serially, not concurrently.
+
 ## Setup
 
-1. **Create branch:** `git checkout -b autoresearch/<tag>` from main (tag = today's date, e.g. `mar12`).
+1. **Create branch:** `git checkout -b <your-prefix>autoresearch/<tag>` from main (tag = today's date, e.g. `mar12`).
 2. **Verify GPU:** `python -c "import torch; print(torch.cuda.get_device_name())"` — expects RTX 3090.
 3. **Verify checkpoint:** `ls checkpoints/track_a_readonly/final/` — needs `lora_adapter/` and `sidecar_weights.pt`.
 4. **Create `results.tsv`** with the header row (see Logging below).
@@ -75,7 +86,7 @@ LOOP FOREVER:
 
 1. **Hypothesis:** Write one sentence about what you're testing and why.
 2. **Modify code:** Make the change (architecture, hyperparams, etc.).
-3. **Commit:** `git commit` with a short description.
+3. **Commit:** `git commit` with a short description. Use your commit prefix and include the score delta after eval (e.g. `CLAUDE: reduce sidecar to 3 layers (+0.45, +29%, score)`).
 4. **Train:**
    ```bash
    PYTORCH_ALLOC_CONF=expandable_segments:True python scripts/train_track_a_readonly.py \
@@ -89,7 +100,7 @@ LOOP FOREVER:
 6. **Extract:** `grep "^score:\|^avg_task:\|^ppl:" run_eval.log`
 7. **Log:** Append to `results.tsv`.
 8. **Decide:**
-   - If score improved → keep the commit, this is the new baseline.
+   - If score improved → amend the commit message with the result delta (e.g. `<PREFIX> reduce sidecar to 3 layers (+0.45, +29%, score)`), this is the new baseline.
    - If score is equal or worse → `git reset --hard HEAD~1` to discard.
 9. **Repeat.**
 
