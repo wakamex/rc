@@ -153,8 +153,10 @@ def main():
                 hidden_dim=hidden_dim,
                 num_heads=8,
                 dropout=0.0,
+                gate_init=0.05,  # trained gates settle at ~0.044-0.059
             )
-            sidecar_bundle.load_state_dict(torch.load(sidecar_weights_path, map_location=device))
+            # strict=False: older checkpoints lack gate_alpha (added later)
+            sidecar_bundle.load_state_dict(torch.load(sidecar_weights_path, map_location=device), strict=False)
             sidecar_bundle = sidecar_bundle.to(device).to(dtype).eval()
             hook_manager = SidecarHookManager(model, sidecar_bundle, sidecar_layers)
         else:
