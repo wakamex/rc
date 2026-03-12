@@ -80,7 +80,7 @@ Only one agent trains at a time (single GPU, 24GB). Agents run serially, not con
 
 ## The Experiment Loop
 
-**Sprint budget: 300 training steps (~30 min) + sprint eval (~10 min) = ~40 min total.**
+**Sprint budget: 1500 training steps (~25 min) + sprint eval (~3 min) = ~28 min total.**
 
 LOOP FOREVER:
 
@@ -90,10 +90,10 @@ LOOP FOREVER:
 4. **Train:**
    ```bash
    PYTORCH_ALLOC_CONF=expandable_segments:True python scripts/train_track_a_readonly.py \
-     --no_wandb --max_steps 300 --batch_size 1 --grad_accum 16 \
-     --memory_task_ratio 0.3 --gate_warmup_steps 50 --gate_warmup_target 0.1 \
+     --no_wandb --max_steps 1500 --batch_size 1 --grad_accum 16 \
+     --memory_task_ratio 0.3 --warmup_steps 15 --gate_warmup_steps 10 --gate_warmup_target 0.1 \
      --output_dir checkpoints/sprint --save_interval 9999 \
-     --log_interval 50 > run.log 2>&1
+     --log_interval 100 > run.log 2>&1
    ```
    Adjust args as needed for your experiment. Redirect output — do NOT flood context.
 5. **Eval:** `python scripts/sprint_eval.py checkpoints/sprint/final`
@@ -139,7 +139,7 @@ Do NOT commit results.tsv — leave it untracked.
 - **VRAM:** 24 GB (RTX 3090). batch_size=1 + grad_accum=16 is the safe default.
 - **Gradient checkpointing is broken** with sidecar hooks — do not enable it.
 - **PYTORCH_ALLOC_CONF=expandable_segments:True** required for all training runs.
-- **Minimum 300 steps** for any signal on structured reasoning tasks.
+- **Minimum 1500 steps** for any signal. With grad_accum=16, 1500 steps = 93 optimizer steps. Warmup must be scaled accordingly (warmup_steps=15, gate_warmup_steps=10).
 - Gates need warmup — without it they never open (chicken-and-egg with tanh gating).
 
 ## Research Directions (Ordered by Expected Impact)
