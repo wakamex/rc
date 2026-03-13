@@ -66,6 +66,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--num_heads", type=int, default=8,
                    help="Number of attention heads in CrossAttentionSidecar.")
     p.add_argument("--sidecar_dropout", type=float, default=0.0)
+    p.add_argument("--sidecar_type", default="cross_attention",
+                   choices=["cross_attention", "film"],
+                   help="Sidecar injection mechanism.")
     p.add_argument("--gate_init", type=float, default=0.0,
                    help="Initial value for sidecar gate (0=no-op, 0.1=small signal).")
     p.add_argument("--gate_warmup_steps", type=int, default=0,
@@ -175,25 +178,35 @@ class ReadOnlySidecarBundle(nn.Module):
         num_heads: int = 8,
         dropout: float = 0.0,
         gate_init: float = 0.0,
+        sidecar_type: str = "cross_attention",
     ) -> None:
         super().__init__()
         self.layer_indices = layer_indices
         self.reservoir_dim = reservoir_dim
         self.hidden_dim = hidden_dim
+        self.sidecar_type = sidecar_type
 
-        from src.reservoir.interface import CrossAttentionSidecar, ReadProjection
+        from src.reservoir.interface import CrossAttentionSidecar, FiLMModulation, ReadProjection
 
-        # One CrossAttentionSidecar per injected layer
-        self.sidecars = nn.ModuleDict({
-            str(idx): CrossAttentionSidecar(
-                hidden_dim=hidden_dim,
-                reservoir_dim=reservoir_dim,
-                num_heads=num_heads,
-                dropout=dropout,
-                gate_init=gate_init,
-            )
-            for idx in layer_indices
-        })
+        if sidecar_type == "film":
+            self.sidecars = nn.ModuleDict({
+                str(idx): FiLMModulation(
+                    reservoir_dim=reservoir_dim,
+                    hidden_dim=hidden_dim,
+                )
+                for idx in layer_indices
+            })
+        else:
+            self.sidecars = nn.ModuleDict({
+                str(idx): CrossAttentionSidecar(
+                    hidden_dim=hidden_dim,
+                    reservoir_dim=reservoir_dim,
+                    num_heads=num_heads,
+                    dropout=dropout,
+                    gate_init=gate_init,
+                )
+                for idx in layer_indices
+            })
 
         # Shared ReadProjection (optional lightweight read path)
         self.read_proj = ReadProjection(
@@ -449,6 +462,7 @@ def train(args: argparse.Namespace) -> None:
         num_heads=args.num_heads,
         dropout=args.sidecar_dropout,
         gate_init=args.gate_init,
+        sidecar_type=args.sidecar_type,
     )
     sidecar_bundle = sidecar_bundle.to(device).to(dtype)
     logger.info(
@@ -569,7 +583,8 @@ def train(args: argparse.Namespace) -> None:
         hook_manager.set_reservoir_states(reservoir_states)
 
         # --- Gate warmup: linearly ramp gate_alpha during early training ---
-        if args.gate_warmup_steps > 0:
+        # (Only applies to cross_attention sidecars which have gate_alpha)
+        if args.gate_warmup_steps > 0 and args.sidecar_type == "cross_attention":
             train_step = global_step // args.grad_accum
             if train_step < args.gate_warmup_steps:
                 ramp = (train_step / args.gate_warmup_steps) * args.gate_warmup_target
@@ -581,7 +596,7 @@ def train(args: argparse.Namespace) -> None:
                             f"gate_alpha={args.gate_warmup_target:.3f}")
 
         # --- Freeze gates at fixed value (prevents drift on generic data) ---
-        if args.freeze_gates_at is not None:
+        if args.freeze_gates_at is not None and args.sidecar_type == "cross_attention":
             for sidecar in sidecar_bundle.sidecars.values():
                 sidecar.gate_alpha.data.fill_(args.freeze_gates_at)
 
@@ -651,6 +666,7 @@ def train(args: argparse.Namespace) -> None:
         "sidecar_layers": sidecar_layers,
         "num_heads": args.num_heads,
         "gate_init": args.gate_init,
+        "sidecar_type": args.sidecar_type,
     }
     with (final_dir / "sidecar_config.json").open("w") as f:
         json.dump(sidecar_config, f)
