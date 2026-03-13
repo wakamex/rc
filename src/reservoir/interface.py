@@ -230,6 +230,13 @@ class CrossAttentionSidecar(nn.Module):
 
         # Scaled dot-product attention
         attn = torch.matmul(Q, K.transpose(-2, -1)) / self.scale  # (B, heads, T, S)
+
+        # Causal mask: position t can only attend to reservoir states at positions <= t.
+        # Without this, queries can see future reservoir states (causal leakage).
+        if S > 1:
+            causal_mask = torch.ones(T, S, device=attn.device, dtype=torch.bool).triu(diagonal=1)
+            attn = attn.masked_fill(causal_mask.unsqueeze(0).unsqueeze(0), float("-inf"))
+
         attn = F.softmax(attn, dim=-1)
         attn = self.dropout(attn)
         out = torch.matmul(attn, V)  # (B, heads, T, head_dim)
