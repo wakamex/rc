@@ -145,12 +145,14 @@ def main():
             sidecar_layers = sc_cfg["sidecar_layers"]
             num_heads = sc_cfg.get("num_heads", 8)
             gate_init = sc_cfg.get("gate_init", 0.0)
+            sidecar_type = sc_cfg.get("sidecar_type", "cross_attention")
         else:
             reservoir_size = 10000
             num_layers = model.config.num_hidden_layers
             sidecar_layers = list(range(3, num_layers, 4))
             num_heads = 8
             gate_init = 0.05
+            sidecar_type = "cross_attention"
 
         reservoir_cfg = ReservoirConfig(
             size=reservoir_size, spectral_radius=0.9, leak_rate=0.5,
@@ -168,6 +170,7 @@ def main():
                 num_heads=num_heads,
                 dropout=0.0,
                 gate_init=gate_init,
+                sidecar_type=sidecar_type,
             )
             # strict=False: older checkpoints lack gate_alpha (added later)
             sidecar_bundle.load_state_dict(torch.load(sidecar_weights_path, map_location=device), strict=False)
