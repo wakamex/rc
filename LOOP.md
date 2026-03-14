@@ -7,16 +7,16 @@ Autonomous experimentation loop for optimizing the ESN reservoir sidecar on Qwen
 **Maximize `score` where:**
 
 ```
-avg_task = mean(ModularArithmetic_EM, LengthExtrapolation_EM, DyckLanguage_EM) - 0.016
-score    = avg_task - 2 × (ppl - 6.82)
+avg_task = mean(ModularArithmetic_EM, LengthExtrapolation_EM, DyckLanguage_EM)
+score    = avg_task / ppl
 ```
 
-- `avg_task` is the reservoir's delta over the LoRA-only baseline (0.016) on 3 structured reasoning tasks that LoRA alone can't solve
+- `avg_task` is the raw (non-delta) mean exact-match accuracy on 3 structured reasoning tasks
 - `ppl` is perplexity on 5 standard texts (vanilla baseline: 6.82)
-- The penalty is linear and continuous — every +0.1 ppl costs 0.2 avg_task. Lower ppl is always better.
-- The no-go gate is ppl ≤ 6.96 (≤2% degradation). At the gate boundary, the ppl penalty is 2 × 0.14 = 0.28 — roughly the current avg_task, so score ≈ 0 there. Above the gate, score goes negative.
+- Higher score is better: maximizes task performance per unit of perplexity
+- With 0 task performance, score = 0 regardless of ppl (no gaming via ppl-only improvements)
 
-**Current incumbent: score = -1.551** (avg_task=0.249, ppl=7.72). The perplexity cost is the primary problem.
+**Current incumbent: score = 0.00975** (avg_task=0.0667, ppl=6.84, from exp23: gated linear, 5 layers).
 
 ## Context
 

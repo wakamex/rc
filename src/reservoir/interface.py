@@ -255,6 +255,86 @@ class CrossAttentionSidecar(nn.Module):
         return out
 
 
+class GatedLinearSidecar(nn.Module):
+    """Per-token gated linear projection of reservoir states.
+
+    At each position t, projects reservoir_state[t] (which encodes input history
+    0..t) and adds to hidden with a tanh gate.  Inherently causal — no mask needed.
+
+    Lighter than CrossAttentionSidecar: no Q/K/V projections, no attention weights.
+
+    Args:
+        hidden_dim: LLM hidden dimension.
+        reservoir_dim: Reservoir state dimension.
+        gate_init: Initial value for tanh gate parameter.
+        use_delta: If True, concatenate state deltas (state[t] - state[t-1]) as
+                   additional features, doubling the input to the projection.
+    """
+
+    def __init__(
+        self,
+        hidden_dim: int,
+        reservoir_dim: int,
+        gate_init: float = 0.0,
+        use_delta: bool = False,
+    ) -> None:
+        super().__init__()
+        self.hidden_dim = hidden_dim
+        self.reservoir_dim = reservoir_dim
+        self.use_delta = use_delta
+        input_dim = reservoir_dim * 2 if use_delta else reservoir_dim
+        self.proj = nn.Linear(input_dim, hidden_dim, bias=True)
+        self.norm = nn.LayerNorm(hidden_dim)
+        self.gate_alpha = nn.Parameter(torch.tensor([gate_init]))
+
+    def forward(
+        self,
+        hidden: torch.Tensor,
+        reservoir_states: np.ndarray | torch.Tensor,
+        device: torch.device | str | None = None,
+    ) -> torch.Tensor:
+        """Apply gated linear injection from reservoir states.
+
+        Args:
+            hidden: LLM hidden states, shape (batch, seq_len, hidden_dim) or (seq_len, hidden_dim).
+            reservoir_states: shape (batch, seq_len, reservoir_dim) or (seq_len, reservoir_dim).
+            device: target device.
+
+        Returns:
+            Updated hidden states, same shape as input.
+        """
+        squeeze_batch = hidden.ndim == 2
+        if squeeze_batch:
+            hidden = hidden.unsqueeze(0)
+
+        r = _to_tensor(reservoir_states, device=hidden.device, dtype=hidden.dtype)
+        if r.ndim == 2:
+            r = r.unsqueeze(0)
+
+        # Align reservoir sequence length to hidden (truncate or pad)
+        B, T, H = hidden.shape
+        S = r.shape[1]
+        if S > T:
+            r = r[:, :T, :]
+        elif S < T:
+            pad = torch.zeros(B, T - S, r.shape[2], device=r.device, dtype=r.dtype)
+            r = torch.cat([r, pad], dim=1)
+
+        if self.use_delta:
+            # Compute state deltas: delta[t] = state[t] - state[t-1], delta[0] = state[0]
+            delta = r[:, 1:, :] - r[:, :-1, :]
+            delta = torch.cat([r[:, :1, :], delta], dim=1)  # (B, T, reservoir_dim)
+            r = torch.cat([r, delta], dim=-1)  # (B, T, 2*reservoir_dim)
+
+        projected = self.proj(r)       # (B, T, H)
+        projected = self.norm(projected)
+        out = hidden + torch.tanh(self.gate_alpha) * projected
+
+        if squeeze_batch:
+            out = out.squeeze(0)
+        return out
+
+
 class FiLMModulation(nn.Module):
     """FiLM-style (Feature-wise Linear Modulation) gated residual injection.
 
