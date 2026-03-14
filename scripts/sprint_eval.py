@@ -146,6 +146,7 @@ def main():
             num_heads = sc_cfg.get("num_heads", 8)
             gate_init = sc_cfg.get("gate_init", 0.0)
             sidecar_type = sc_cfg.get("sidecar_type", "cross_attention")
+            use_delta = sc_cfg.get("use_delta", False)
         else:
             reservoir_size = 10000
             num_layers = model.config.num_hidden_layers
@@ -153,6 +154,7 @@ def main():
             num_heads = 8
             gate_init = 0.05
             sidecar_type = "cross_attention"
+            use_delta = False
 
         reservoir_cfg = ReservoirConfig(
             size=reservoir_size, spectral_radius=0.9, leak_rate=0.5,
@@ -171,6 +173,7 @@ def main():
                 dropout=0.0,
                 gate_init=gate_init,
                 sidecar_type=sidecar_type,
+                use_delta=use_delta,
             )
             # strict=False: older checkpoints lack gate_alpha (added later)
             sidecar_bundle.load_state_dict(torch.load(sidecar_weights_path, map_location=device), strict=False)
@@ -203,17 +206,16 @@ def main():
     if hook_manager is not None:
         hook_manager.remove_hooks()
 
-    # Compute score
+    # Compute score: raw avg task / ppl (higher is better)
     raw_avg = (modarith + lengthext + dyck) / 3.0
-    avg_task = raw_avg - LORA_ONLY_AVG
-    score = avg_task - PPL_WEIGHT * (ppl - VANILLA_PPL)
+    score = raw_avg / ppl if ppl > 0 else 0.0
 
     elapsed = time.perf_counter() - t0
 
     print("---")
-    print(f"avg_task:   {avg_task:.4f}")
+    print(f"avg_task:   {raw_avg:.4f}")
     print(f"ppl:        {ppl:.2f}")
-    print(f"score:      {score:.4f}")
+    print(f"score:      {score:.6f}")
     print(f"modarith:   {modarith:.3f}")
     print(f"lengthext:  {lengthext:.3f}")
     print(f"dyck:       {dyck:.3f}")
