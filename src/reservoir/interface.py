@@ -277,13 +277,21 @@ class GatedLinearSidecar(nn.Module):
         reservoir_dim: int,
         gate_init: float = 0.0,
         use_delta: bool = False,
+        proj_hidden: int = 0,
     ) -> None:
         super().__init__()
         self.hidden_dim = hidden_dim
         self.reservoir_dim = reservoir_dim
         self.use_delta = use_delta
         input_dim = reservoir_dim * 2 if use_delta else reservoir_dim
-        self.proj = nn.Linear(input_dim, hidden_dim, bias=True)
+        if proj_hidden > 0:
+            self.proj = nn.Sequential(
+                nn.Linear(input_dim, proj_hidden, bias=True),
+                nn.GELU(),
+                nn.Linear(proj_hidden, hidden_dim, bias=True),
+            )
+        else:
+            self.proj = nn.Linear(input_dim, hidden_dim, bias=True)
         self.norm = nn.LayerNorm(hidden_dim)
         self.gate_alpha = nn.Parameter(torch.tensor([gate_init]))
 

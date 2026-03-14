@@ -73,6 +73,8 @@ def parse_args() -> argparse.Namespace:
                    help="Initial value for sidecar gate (0=no-op, 0.1=small signal).")
     p.add_argument("--use_delta", action="store_true",
                    help="For gated_linear: concat state deltas as extra features.")
+    p.add_argument("--proj_hidden", type=int, default=0,
+                   help="For gated_linear: MLP bottleneck dim (0=single linear).")
     p.add_argument("--gate_warmup_steps", type=int, default=0,
                    help="Linearly ramp gate_alpha from 0 to --gate_warmup_target over N steps.")
     p.add_argument("--gate_warmup_target", type=float, default=0.5,
@@ -182,6 +184,7 @@ class ReadOnlySidecarBundle(nn.Module):
         gate_init: float = 0.0,
         sidecar_type: str = "cross_attention",
         use_delta: bool = False,
+        proj_hidden: int = 0,
     ) -> None:
         super().__init__()
         self.layer_indices = layer_indices
@@ -206,6 +209,7 @@ class ReadOnlySidecarBundle(nn.Module):
                     reservoir_dim=reservoir_dim,
                     gate_init=gate_init,
                     use_delta=use_delta,
+                    proj_hidden=proj_hidden,
                 )
                 for idx in layer_indices
             })
@@ -477,6 +481,7 @@ def train(args: argparse.Namespace) -> None:
         gate_init=args.gate_init,
         sidecar_type=args.sidecar_type,
         use_delta=getattr(args, "use_delta", False),
+        proj_hidden=getattr(args, "proj_hidden", 0),
     )
     sidecar_bundle = sidecar_bundle.to(device).to(dtype)
     logger.info(
@@ -683,6 +688,7 @@ def train(args: argparse.Namespace) -> None:
         "gate_init": args.gate_init,
         "sidecar_type": args.sidecar_type,
         "use_delta": getattr(args, "use_delta", False),
+        "proj_hidden": getattr(args, "proj_hidden", 0),
     }
     with (final_dir / "sidecar_config.json").open("w") as f:
         json.dump(sidecar_config, f)
