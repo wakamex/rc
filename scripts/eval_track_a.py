@@ -283,8 +283,30 @@ def main() -> None:
         from src.reservoir.esn import ESN
         from src.types import ReservoirConfig
 
+        # Load sidecar config if saved, otherwise use defaults
+        config_path = ckpt / "sidecar_config.json"
+        if config_path.exists():
+            with open(config_path) as f:
+                sc_cfg = json.load(f)
+            reservoir_size = sc_cfg["reservoir_size"]
+            sidecar_layers = sc_cfg["sidecar_layers"]
+            num_heads = sc_cfg.get("num_heads", 8)
+            gate_init = sc_cfg.get("gate_init", 0.0)
+            sidecar_type = sc_cfg.get("sidecar_type", "cross_attention")
+            use_delta = sc_cfg.get("use_delta", False)
+            proj_hidden = sc_cfg.get("proj_hidden", 0)
+        else:
+            reservoir_size = 10000
+            num_layers = model.config.num_hidden_layers
+            sidecar_layers = list(range(3, num_layers, 4))
+            num_heads = 8
+            gate_init = 0.05
+            sidecar_type = "cross_attention"
+            use_delta = False
+            proj_hidden = 0
+
         reservoir_cfg = ReservoirConfig(
-            size=10000,
+            size=reservoir_size,
             spectral_radius=0.9,
             leak_rate=0.5,
             input_scaling=1.0,
@@ -294,21 +316,23 @@ def main() -> None:
         esn_cpu = ESN(reservoir_cfg, input_dim=hidden_dim)
         esn = esn_cpu.to_gpu(args.device) if device.type == "cuda" else esn_cpu
 
-        num_layers = model.config.num_hidden_layers
-        sidecar_layers = list(range(3, num_layers, 4))
-        print(f"Building sidecar at layers {sidecar_layers}...")
+        print(f"Building sidecar ({sidecar_type}) at layers {sidecar_layers}...")
 
         sidecar_bundle = ReadOnlySidecarBundle(
             layer_indices=sidecar_layers,
-            reservoir_dim=10000,
+            reservoir_dim=reservoir_size,
             hidden_dim=hidden_dim,
-            num_heads=8,
+            num_heads=num_heads,
             dropout=0.0,
+            gate_init=gate_init,
+            sidecar_type=sidecar_type,
+            use_delta=use_delta,
+            proj_hidden=proj_hidden,
         )
 
         sidecar_weights_path = ckpt / "sidecar_weights.pt"
         print(f"Loading sidecar weights from {sidecar_weights_path}...")
-        sidecar_bundle.load_state_dict(torch.load(sidecar_weights_path, map_location=device))
+        sidecar_bundle.load_state_dict(torch.load(sidecar_weights_path, map_location=device), strict=False)
         sidecar_bundle = sidecar_bundle.to(device).to(dtype)
         sidecar_bundle.eval()
 
@@ -387,7 +411,7 @@ def main() -> None:
             "dtype": args.dtype,
             "n_examples": args.n_examples,
             "max_new_tokens": args.max_new_tokens,
-            "reservoir_size": 0 if args.no_sidecar else 10000,
+            "reservoir_size": 0 if args.no_sidecar else reservoir_size,
             "sidecar_enabled": not args.no_sidecar,
             "lora_rank": 16,
         },
