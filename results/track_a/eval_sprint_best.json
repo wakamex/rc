@@ -1,0 +1,923 @@
+{
+  "model_name": "qwen3.5-0.8b+track-a-readonly",
+  "checkpoint": "checkpoints/sprint/final",
+  "timestamp": 1773511603.4874048,
+  "config": {
+    "device": "cuda",
+    "dtype": "bf16",
+    "n_examples": 50,
+    "max_new_tokens": 64,
+    "reservoir_size": 1000,
+    "sidecar_enabled": true,
+    "lora_rank": 16
+  },
+  "perplexity": 6.835654541681026,
+  "vram": {
+    "allocated_mb": 1462.91455078125,
+    "peak_mb": 1610.6064453125
+  },
+  "latency": {
+    "p50_s": 0.42531357519328594,
+    "p95_s": 2.151662623975426
+  },
+  "eval_elapsed_seconds": 1007.5796033968218,
+  "results": [
+    {
+      "task": "PasskeyRetrieval",
+      "metric": "exact_match",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "PasskeyRetrieval",
+      "metric": "accuracy",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "PasskeyRetrieval",
+      "metric": "f1",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "PasskeyRetrieval",
+      "metric": "exact_match",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "PasskeyRetrieval",
+      "metric": "accuracy",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "PasskeyRetrieval",
+      "metric": "f1",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "VariableTracking",
+      "metric": "exact_match",
+      "value": 0.72,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "VariableTracking",
+      "metric": "accuracy",
+      "value": 0.72,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "VariableTracking",
+      "metric": "f1",
+      "value": 0.72,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "VariableTracking",
+      "metric": "exact_match",
+      "value": 0.56,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "VariableTracking",
+      "metric": "accuracy",
+      "value": 0.56,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "VariableTracking",
+      "metric": "f1",
+      "value": 0.56,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AssociativeRecall",
+      "metric": "exact_match",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AssociativeRecall",
+      "metric": "accuracy",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AssociativeRecall",
+      "metric": "f1",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AssociativeRecall",
+      "metric": "exact_match",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AssociativeRecall",
+      "metric": "accuracy",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AssociativeRecall",
+      "metric": "f1",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "MultiDigitArithmetic",
+      "metric": "exact_match",
+      "value": 0.94,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "MultiDigitArithmetic",
+      "metric": "accuracy",
+      "value": 0.94,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "MultiDigitArithmetic",
+      "metric": "f1",
+      "value": 0.94,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "MultiDigitArithmetic",
+      "metric": "exact_match",
+      "value": 0.94,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "MultiDigitArithmetic",
+      "metric": "accuracy",
+      "value": 0.94,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "MultiDigitArithmetic",
+      "metric": "f1",
+      "value": 0.94,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "MultiDigitArithmetic",
+      "metric": "exact_match",
+      "value": 0.14,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "MultiDigitArithmetic",
+      "metric": "accuracy",
+      "value": 0.14,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "MultiDigitArithmetic",
+      "metric": "f1",
+      "value": 0.14,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "ModularArithmetic",
+      "metric": "exact_match",
+      "value": 0.14,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "ModularArithmetic",
+      "metric": "accuracy",
+      "value": 0.14,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "ModularArithmetic",
+      "metric": "f1",
+      "value": 0.14,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "DyckLanguage",
+      "metric": "exact_match",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "DyckLanguage",
+      "metric": "accuracy",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "DyckLanguage",
+      "metric": "f1",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "DyckLanguage",
+      "metric": "exact_match",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "DyckLanguage",
+      "metric": "accuracy",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "DyckLanguage",
+      "metric": "f1",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "ProgramTrace",
+      "metric": "exact_match",
+      "value": 0.18,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "ProgramTrace",
+      "metric": "accuracy",
+      "value": 0.18,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "ProgramTrace",
+      "metric": "f1",
+      "value": 0.19,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "ProgramTrace",
+      "metric": "exact_match",
+      "value": 0.22,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "ProgramTrace",
+      "metric": "accuracy",
+      "value": 0.22,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "ProgramTrace",
+      "metric": "f1",
+      "value": 0.22,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "CompositionalGeneralization",
+      "metric": "exact_match",
+      "value": 0.06,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "CompositionalGeneralization",
+      "metric": "accuracy",
+      "value": 0.06,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "CompositionalGeneralization",
+      "metric": "f1",
+      "value": 0.15833333333333333,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "CompositionalGeneralization",
+      "metric": "exact_match",
+      "value": 0.02,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "CompositionalGeneralization",
+      "metric": "accuracy",
+      "value": 0.02,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "CompositionalGeneralization",
+      "metric": "f1",
+      "value": 0.11599999999999999,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "LengthExtrapolation",
+      "metric": "exact_match",
+      "value": 0.1,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "LengthExtrapolation",
+      "metric": "accuracy",
+      "value": 0.1,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "LengthExtrapolation",
+      "metric": "f1",
+      "value": 0.14833333333333334,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "LengthExtrapolation",
+      "metric": "exact_match",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "LengthExtrapolation",
+      "metric": "accuracy",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "LengthExtrapolation",
+      "metric": "f1",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "LengthExtrapolation",
+      "metric": "exact_match",
+      "value": 0.02,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "LengthExtrapolation",
+      "metric": "accuracy",
+      "value": 0.02,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "LengthExtrapolation",
+      "metric": "f1",
+      "value": 0.02,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "exact_match",
+      "value": 0.1,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "accuracy",
+      "value": 0.1,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "f1",
+      "value": 0.20373219373219376,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "exact_match",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "accuracy",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "f1",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "exact_match",
+      "value": 0.04,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "accuracy",
+      "value": 0.04,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "f1",
+      "value": 0.04,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "exact_match",
+      "value": 0.02,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "accuracy",
+      "value": 0.02,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "f1",
+      "value": 0.02,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "1f59d0b",
+        "timestamp": 1773510595.9099126,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    }
+  ]
+}
