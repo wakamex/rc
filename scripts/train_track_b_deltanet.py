@@ -205,6 +205,12 @@ class ESNReplacementInterface(nn.Module):
         if r.ndim == 2:
             r = r.unsqueeze(0).expand(deltanet_output.shape[0], -1, -1)
 
+        # During autoregressive generation, deltanet_output may be shorter
+        # than reservoir_states (KV-cache processes 1 token at a time).
+        # Skip ESN mixing when lengths don't match — no new reservoir info.
+        if r.shape[1] != deltanet_output.shape[1]:
+            return deltanet_output
+
         # Project ESN → hidden_dim
         esn_out = self.esn_norm(self.read_proj(r))  # (B, T, H)
 
