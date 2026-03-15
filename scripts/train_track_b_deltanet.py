@@ -50,7 +50,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--device", default="cuda")
 
     # Reservoir config — best HP from T16 sweep
-    p.add_argument("--reservoir_size", type=int, default=10_000)
+    p.add_argument("--reservoir_size", type=int, default=1_000)
     p.add_argument("--spectral_radius", type=float, default=0.9)
     p.add_argument("--leak_rate", type=float, default=0.5)
     p.add_argument("--input_scaling", type=float, default=1.0)
@@ -62,8 +62,12 @@ def parse_args() -> argparse.Namespace:
                    help="Replace every N-th DeltaNet block (default: 3 → 6 of 18).")
     p.add_argument("--num_deltanet_blocks", type=int, default=18,
                    help="Expected number of DeltaNet blocks in Qwen3.5 (default: 18).")
-    p.add_argument("--replacement_gate_init", type=float, default=0.5,
+    p.add_argument("--replacement_gate_init", type=float, default=0.1,
                    help="Initial gate value for ESN/DeltaNet mix (0=pure DeltaNet, 1=pure ESN).")
+    p.add_argument("--gate_warmup_steps", type=int, default=10,
+                   help="Ramp gate from 0 to gate_init over N optimizer steps.")
+    p.add_argument("--gate_warmup_target", type=float, default=0.1,
+                   help="Target gate_init at end of warmup.")
 
     # LoRA
     p.add_argument("--lora_rank", type=int, default=16)
@@ -77,15 +81,17 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--weight_decay", type=float, default=0.01)
     p.add_argument("--warmup_steps", type=int, default=100)
     p.add_argument("--max_steps", type=int, default=5000)
-    p.add_argument("--batch_size", type=int, default=4)
-    p.add_argument("--grad_accum", type=int, default=4)
+    p.add_argument("--batch_size", type=int, default=1)
+    p.add_argument("--grad_accum", type=int, default=16)
     p.add_argument("--max_seq_length", type=int, default=2048)
-    p.add_argument("--gradient_checkpointing", action="store_true", default=True)
+    p.add_argument("--gradient_checkpointing", action="store_true", default=False)
     p.add_argument("--seed", type=int, default=42)
 
     # Data
     p.add_argument("--dataset_name", default="HuggingFaceFW/fineweb")
     p.add_argument("--dataset_config", default="sample-10BT")
+    p.add_argument("--memory_task_ratio", type=float, default=0.3,
+                   help="Fraction of batches from synthetic memory tasks (0.0=pure FineWeb).")
 
     # Output
     p.add_argument("--output_dir", default="checkpoints/track_b/deltanet")
@@ -120,7 +126,7 @@ def apply_config_overrides(args: argparse.Namespace, config: dict[str, Any]) -> 
 # ---------------------------------------------------------------------------
 
 
-from src.data.dataloader import build_dataloader  # noqa: E402
+from src.data.dataloader import build_dataloader, build_mixed_dataloader  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -379,6 +385,30 @@ class DeltaNetReplacementManager:
 # ---------------------------------------------------------------------------
 
 
+def _save_sidecar_config(
+    path: Path, args: argparse.Namespace, hidden_dim: int,
+    n_step: int, num_dn: int, selected_dn_indices: list[int],
+) -> None:
+    """Save sidecar configuration to JSON for eval loading."""
+    cfg = {
+        "track": "B",
+        "integration": "deltanet_replacement",
+        "reservoir_size": args.reservoir_size,
+        "spectral_radius": args.spectral_radius,
+        "leak_rate": args.leak_rate,
+        "input_scaling": args.input_scaling,
+        "reservoir_sparsity": args.reservoir_sparsity,
+        "reservoir_seed": args.reservoir_seed,
+        "replace_every_nth_deltanet": n_step,
+        "num_deltanet_blocks": num_dn,
+        "selected_deltanet_blocks": selected_dn_indices,
+        "replacement_gate_init": args.replacement_gate_init,
+        "hidden_dim": hidden_dim,
+    }
+    with (path / "sidecar_config.json").open("w") as f:
+        json.dump(cfg, f, indent=2)
+
+
 def train(args: argparse.Namespace) -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
@@ -473,8 +503,8 @@ def train(args: argparse.Namespace) -> None:
     )
     replacement_manager.register_hooks(transformer_layers)
 
-    if args.gradient_checkpointing and hasattr(model, "gradient_checkpointing_enable"):
-        model.gradient_checkpointing_enable()
+    if args.gradient_checkpointing:
+        logger.warning("gradient_checkpointing is BROKEN with forward hooks — ignoring flag")
 
     model.train()
     replacement_interfaces.train()
@@ -501,15 +531,27 @@ def train(args: argparse.Namespace) -> None:
     scheduler = SequentialLR(optimizer, schedulers=[warmup_sched, cosine_sched],
                              milestones=[args.warmup_steps])
 
-    logger.info("Building data loader from %s / %s", args.dataset_name, args.dataset_config)
-    loader = build_dataloader(
-        tokenizer._tok,  # type: ignore[attr-defined]
-        dataset_name=args.dataset_name,
-        dataset_config=args.dataset_config,
-        max_seq_length=args.max_seq_length,
-        batch_size=args.batch_size,
-        seed=args.seed,
-    )
+    logger.info("Building data loader from %s / %s (memory_task_ratio=%.2f)",
+                args.dataset_name, args.dataset_config, args.memory_task_ratio)
+    if args.memory_task_ratio > 0:
+        loader = build_mixed_dataloader(
+            tokenizer._tok,  # type: ignore[attr-defined]
+            dataset_name=args.dataset_name,
+            dataset_config=args.dataset_config,
+            max_seq_length=args.max_seq_length,
+            batch_size=args.batch_size,
+            memory_task_ratio=args.memory_task_ratio,
+            seed=args.seed,
+        )
+    else:
+        loader = build_dataloader(
+            tokenizer._tok,  # type: ignore[attr-defined]
+            dataset_name=args.dataset_name,
+            dataset_config=args.dataset_config,
+            max_seq_length=args.max_seq_length,
+            batch_size=args.batch_size,
+            seed=args.seed,
+        )
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -543,6 +585,16 @@ def train(args: argparse.Namespace) -> None:
 
         reservoir_states = np.stack(all_states, axis=0)
         replacement_manager.set_reservoir_states(reservoir_states)
+
+        # Gate warmup: ramp gate bias from -inf (sigmoid→0) to target
+        if args.gate_warmup_steps > 0:
+            opt_step = global_step // args.grad_accum
+            if opt_step < args.gate_warmup_steps:
+                progress = opt_step / args.gate_warmup_steps
+                current_gate = max(progress * args.gate_warmup_target, 1e-6)
+                current_bias = math.log(current_gate / (1.0 - current_gate + 1e-6))
+                for iface in replacement_interfaces.values():
+                    iface.gate_proj.bias.data.fill_(current_bias)
 
         with torch.autocast(device_type=device.type, dtype=dtype):
             outputs = model(input_ids=input_ids, labels=labels)
@@ -588,6 +640,7 @@ def train(args: argparse.Namespace) -> None:
                 model.save_pretrained(str(ckpt_path / "lora_adapter"))
             torch.save(replacement_interfaces.state_dict(),
                        ckpt_path / "replacement_interface_weights.pt")
+            _save_sidecar_config(ckpt_path, args, hidden_dim, n_step, num_dn, selected_dn_indices)
 
     logger.info("Training complete at step %d. Saving final checkpoint.", global_step)
     final_dir = output_dir / "final"
@@ -596,6 +649,7 @@ def train(args: argparse.Namespace) -> None:
         model.save_pretrained(str(final_dir / "lora_adapter"))
     torch.save(replacement_interfaces.state_dict(),
                final_dir / "replacement_interface_weights.pt")
+    _save_sidecar_config(final_dir, args, hidden_dim, n_step, num_dn, selected_dn_indices)
 
     replacement_manager.remove_hooks()
 
