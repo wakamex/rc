@@ -63,12 +63,13 @@ def build_dataloader(
 # ---------------------------------------------------------------------------
 
 
-def _memory_task_examples(seed: int = 1337) -> Iterator[str]:
-    """Infinite iterator of synthetic memory task prompt+answer strings.
+def _memory_task_examples(seed: int = 1337, include_computation: bool = False) -> Iterator[str]:
+    """Infinite iterator of synthetic task prompt+answer strings.
 
     Uses AssociativeRecall, VariableTracking, and PasskeyRetrieval with
-    varying parameters. Uses a different seed than eval (eval=42) to
-    avoid train/eval overlap.
+    varying parameters. Optionally includes computation/emergent tasks
+    (ModularArithmetic, DyckLanguage, LengthExtrapolation).
+    Uses a different seed than eval (eval=42) to avoid train/eval overlap.
     """
     from src.eval.benchmarks.memory import (
         AssociativeRecall,
@@ -76,13 +77,20 @@ def _memory_task_examples(seed: int = 1337) -> Iterator[str]:
         VariableTracking,
     )
 
+    task_types = ["ar", "vt", "pk"]
+
+    if include_computation:
+        from src.eval.benchmarks.computation import DyckLanguage, ModularArithmetic
+        from src.eval.benchmarks.emergent import LengthExtrapolation
+        task_types.extend(["modarith", "dyck", "lengthext"])
+
     rng = random.Random(seed)
     task_seed = seed
 
     while True:
         task_seed += 1
         # Vary task parameters for diversity
-        task_type = rng.choice(["ar", "vt", "pk"])
+        task_type = rng.choice(task_types)
 
         if task_type == "ar":
             num_pairs = rng.randint(3, 8)
@@ -94,9 +102,22 @@ def _memory_task_examples(seed: int = 1337) -> Iterator[str]:
             num_ops = rng.randint(3, 8)
             gen = VariableTracking(n=1, num_variables=num_vars,
                                    num_operations=num_ops, seed=task_seed)
-        else:
+        elif task_type == "pk":
             ctx_len = rng.randint(100, 300)
             gen = PasskeyRetrieval(n=1, context_length=ctx_len, seed=task_seed)
+        elif task_type == "modarith":
+            modulus = rng.choice([23, 37, 53, 71, 97])
+            gen = ModularArithmetic(n=1, modulus=modulus, seed=task_seed)
+        elif task_type == "dyck":
+            max_depth = rng.randint(2, 4)
+            bracket_types = rng.randint(1, 2)
+            gen = DyckLanguage(n=1, max_depth=max_depth,
+                               bracket_types=bracket_types, seed=task_seed)
+        elif task_type == "lengthext":
+            train_len = rng.randint(3, 6)
+            mult = rng.choice([1.0, 1.5, 2.0])
+            gen = LengthExtrapolation(n=1, train_length=train_len,
+                                      test_multiplier=mult, seed=task_seed)
 
         for ex in gen:
             # Use benchmark's native prompt format directly.
@@ -112,12 +133,15 @@ def build_mixed_dataloader(
     memory_task_ratio: float = 0.1,
     seed: int = 42,
     memory_seed: int = 1337,
+    include_computation: bool = False,
 ) -> object:
-    """Build a dataloader that mixes FineWeb with synthetic memory tasks.
+    """Build a dataloader that mixes FineWeb with synthetic tasks.
 
     Args:
-        memory_task_ratio: Fraction of batches that are memory tasks (0.0-1.0).
-        memory_seed: Seed for memory task generation (must differ from eval seed=42).
+        memory_task_ratio: Fraction of batches that are synthetic tasks (0.0-1.0).
+        memory_seed: Seed for task generation (must differ from eval seed=42).
+        include_computation: If True, include ModularArithmetic, DyckLanguage,
+            LengthExtrapolation in the synthetic task mix.
     """
     from datasets import load_dataset  # type: ignore[import]
     from torch.utils.data import DataLoader, IterableDataset  # type: ignore[import]
@@ -137,7 +161,7 @@ def build_mixed_dataloader(
     class MixedDataset(IterableDataset):
         def __init__(self):
             self.fineweb_iter = None
-            self.memory_iter = _memory_task_examples(seed=memory_seed)
+            self.memory_iter = _memory_task_examples(seed=memory_seed, include_computation=include_computation)
             self.rng = random.Random(seed)
 
         def __iter__(self):
