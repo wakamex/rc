@@ -112,6 +112,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--dataset_config", default="sample-10BT")
     p.add_argument("--memory_task_ratio", type=float, default=0.0,
                    help="Fraction of batches from synthetic memory tasks (0.0=pure FineWeb).")
+    p.add_argument("--include_computation", action="store_true",
+                   help="Include ModularArithmetic, DyckLanguage, LengthExtrapolation in training task mix.")
 
     # Output
     p.add_argument("--output_dir", default="checkpoints/track_a_readonly")
@@ -555,6 +557,7 @@ def train(args: argparse.Namespace) -> None:
             batch_size=args.batch_size,
             memory_task_ratio=args.memory_task_ratio,
             seed=args.seed,
+            include_computation=getattr(args, "include_computation", False),
         )
     else:
         loader = build_dataloader(
