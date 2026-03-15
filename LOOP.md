@@ -1,71 +1,61 @@
-# Reservoir Sidecar Experiment Loop
+# Track B Experiment Loop
 
-Autonomous experimentation loop for optimizing the ESN reservoir sidecar on Qwen3.5-0.8B.
+Autonomous experimentation loop for Track B: DeltaNet block replacement with ESN reservoirs on Qwen3.5-0.8B.
 
 ## Objective
 
-**Maximize `score` where:**
+**Maximize `avg_em` while keeping `ppl < 7.0` (< +2% over vanilla 6.82).**
 
 ```
-avg_task = mean(ModularArithmetic_EM, LengthExtrapolation_EM, DyckLanguage_EM)
-score    = avg_task / ppl
+avg_em = mean of all 23 benchmark exact-match scores
+ppl    = perplexity on 5 standard texts (vanilla baseline: 6.82)
 ```
 
-- `avg_task` is the raw (non-delta) mean exact-match accuracy on 3 structured reasoning tasks
-- `ppl` is perplexity on 5 standard texts (vanilla baseline: 6.82)
-- Higher score is better: maximizes task performance per unit of perplexity
-- With 0 task performance, score = 0 regardless of ppl (no gaming via ppl-only improvements)
-
-**Current incumbent: score = 0.00975** (avg_task=0.0667, ppl=6.84, from exp23: gated linear, 5 layers).
+- Higher avg_em is better
+- ppl must stay below 7.0 (Gate B criterion: <2% degradation)
+- Track A incumbent: avg_em=0.357, ppl=6.84
 
 ## Context
 
 Read these files for full context before your first experiment:
 
-- `RESULTS.md` — what we know so far (durable conclusions, ablation results)
-- `src/reservoir/interface.py` — sidecar architecture (CrossAttentionSidecar, FiLMModulation)
-- `scripts/train_track_a_readonly.py` — training script (model loading, ESN, hooks, training loop)
-- `scripts/sprint_eval.py` — the sprint eval script (3 key benchmarks + perplexity → score)
-- `scripts/quick_test.py` — quick AR/VT diagnostic (not used in the loop)
+- `RESULTS.md` — Track A final results + Track B experiment log
+- `scripts/train_track_b_deltanet.py` — Track B training script (DeltaNet replacement + ESN)
+- `scripts/eval_track_b.py` — Track B eval script (full 23-benchmark suite)
+- `src/reservoir/interface.py` — sidecar architectures (reference, not directly used in Track B)
+- `src/reservoir/deltanet_replace.py` — DeltaNet replacement module
+- `docs/gate_a_report.md` — Track A final assessment (what worked, what didn't)
 
-Do NOT read `DIARY.md` — it's a 900-line chronological log. `RESULTS.md` has everything you need.
+Do NOT read `DIARY.md` — it's a chronological log. `RESULTS.md` has everything you need.
 
-## Agent Conventions
+## Workflow
 
-Multiple agents may run this loop in separate worktrees off the same file. Use your row:
+Work directly on `main`. Push commits directly — no side branches.
 
-| Agent  | Branch prefix | Commit prefix | Checkpoint dir         |
-|--------|---------------|---------------|------------------------|
-| Claude | `claude/`     | `CLAUDE:`     | `checkpoints/sprint`   |
-| GPT    | `gpt/`        | `GPT:`        | `checkpoints/sprint`   |
+| Commit prefix | Checkpoint dir                |
+|---------------|-------------------------------|
+| `CLAUDE:`     | `checkpoints/track_b/deltanet` |
 
-Only one agent trains at a time (single GPU, 24GB). Agents run serially, not concurrently.
+Only one agent trains at a time (single GPU, 24GB).
 
 ## Setup
 
-1. **Create branch:** `git checkout -b <your-prefix>autoresearch/<tag>` from main (tag = today's date, e.g. `mar12`).
-2. **Verify GPU:** `python -c "import torch; print(torch.cuda.get_device_name())"` — expects RTX 3090.
-3. **Verify checkpoint:** `ls checkpoints/track_a_readonly/final/` — needs `lora_adapter/` and `sidecar_weights.pt`.
-4. **Create `results.tsv`** with the header row (see Logging below).
-5. **Run baseline:** Eval the current checkpoint to establish the sprint baseline:
-   ```bash
-   python scripts/sprint_eval.py checkpoints/track_a_readonly/final > baseline_eval.log 2>&1
-   grep "^avg_task:\|^ppl:\|^score:" baseline_eval.log
-   ```
+1. **Verify GPU:** `python -c "import torch; print(torch.cuda.get_device_name())"` — expects RTX 3090.
+2. **Check RESULTS.md** for the latest Track B experiment results and what's been tried.
 
 ## What You CAN Modify
 
-- `src/reservoir/interface.py` — sidecar architecture is the primary target. Try:
-  - Different injection mechanisms (cross-attention vs FiLM vs linear vs MLP)
-  - Gate mechanisms (tanh vs sigmoid vs learned schedule vs fixed)
-  - Projection dimensions, number of heads
-  - Normalization placement
-- `scripts/train_track_a_readonly.py` — training hyperparameters:
-  - Learning rates, warmup schedule, gate warmup target
+- `scripts/train_track_b_deltanet.py` — training hyperparameters and replacement strategy:
+  - Number of DeltaNet blocks replaced (`--replace_every_nth_deltanet`)
+  - Gate initialization and warmup schedule
+  - Learning rates, warmup schedule
   - Memory task ratio (currently 0.3)
-  - Number/placement of sidecar layers
   - LoRA rank, alpha, target modules
   - Batch size, grad accumulation, sequence length
+- `scripts/train_track_b_deltanet.py:ESNReplacementInterface` — the replacement interface:
+  - Gate mechanism (sigmoid, tanh, etc.)
+  - Projection architecture (linear, MLP, etc.)
+  - Normalization strategy
 - ESN reservoir parameters: size, spectral_radius, leak_rate, sparsity
 
 ## What You CANNOT Modify
@@ -74,92 +64,85 @@ Only one agent trains at a time (single GPU, 24GB). Agents run serially, not con
 - `src/eval/harness.py` — evaluation logic is fixed
 - `src/reservoir/esn.py` — ESN implementation is fixed
 - `src/models/loader.py` — model loading is fixed
-- The 3 benchmark tasks and parameters used in sprint eval
-- The perplexity computation (same 5 texts, same method)
+- The 23 benchmark tasks and perplexity computation
 - Base model (Qwen3.5-0.8B-Base)
 
 ## The Experiment Loop
 
-**Sprint budget: 1500 training steps (~25 min) + sprint eval (~3 min) = ~28 min total.**
+**Budget: 5000 training steps (~90 min) + full eval (~30 min) = ~2 hours total.**
 
 LOOP FOREVER:
 
 1. **Hypothesis:** Write one sentence about what you're testing and why.
 2. **Modify code:** Make the change (architecture, hyperparams, etc.).
-3. **Commit:** `git commit` with a short description. Use your commit prefix and include the score delta after eval (e.g. `CLAUDE: reduce sidecar to 3 layers (+0.45, +29%, score)`).
-4. **Train:**
+3. **Train:**
    ```bash
-   PYTORCH_ALLOC_CONF=expandable_segments:True python scripts/train_track_a_readonly.py \
-     --no_wandb --max_steps 1500 --batch_size 1 --grad_accum 16 \
-     --memory_task_ratio 0.3 --warmup_steps 15 --gate_warmup_steps 10 --gate_warmup_target 0.1 \
-     --output_dir checkpoints/sprint --save_interval 9999 \
-     --log_interval 100 > run.log 2>&1
+   PYTORCH_ALLOC_CONF=expandable_segments:True python scripts/train_track_b_deltanet.py \
+     --no_wandb --max_steps 5000 --batch_size 1 --grad_accum 16 \
+     --memory_task_ratio 0.3 --warmup_steps 100 --gate_warmup_steps 10 --gate_warmup_target 0.1 \
+     --output_dir checkpoints/track_b/deltanet --save_interval 9999 \
+     --log_interval 100 > run_track_b.log 2>&1
    ```
-   Adjust args as needed for your experiment. Redirect output — do NOT flood context.
-5. **Eval:** `python scripts/sprint_eval.py checkpoints/sprint/final`
-6. **Extract:** `grep "^score:\|^avg_task:\|^ppl:" run_eval.log`
-7. **Log:** Append to `results.tsv`.
-8. **Decide:**
-   - If score improved → amend the commit message with the result delta (e.g. `<PREFIX> reduce sidecar to 3 layers (+0.45, +29%, score)`), this is the new baseline.
-   - If score is equal or worse → `git reset --hard HEAD~1` to discard.
+   Adjust args as needed. Redirect output — do NOT flood context.
+4. **Eval:**
+   ```bash
+   python scripts/eval_track_b.py --checkpoint checkpoints/track_b/deltanet/final \
+     --n-examples 50 --output results/track_b/eval_deltanet.json > eval_track_b.log 2>&1
+   ```
+5. **Extract:** `tail -30 eval_track_b.log` for the comparison table.
+6. **Log:** Update RESULTS.md Track B experiment table.
+7. **Commit:** Include results in the commit message.
+8. **Preserve best:** If this is the new best, copy checkpoint to `checkpoints/track_b/best/`.
 9. **Repeat.**
 
-If a run crashes, fix the bug and retry once. If the idea is fundamentally broken, log it as a crash and move on.
+If a run crashes, fix the bug and retry once. If the idea is fundamentally broken, log it and move on.
 
-**Timeout:** If training exceeds 60 minutes, kill it and treat as failure.
-
-## Logging
-
-`results.tsv` — tab-separated, append-only:
-
-```
-commit	score	avg_task	ppl	status	description
-```
-
-- `commit`: short git hash (7 chars)
-- `score`: computed metric
-- `avg_task`: mean of 3 task EMs
-- `ppl`: perplexity
-- `status`: `keep`, `discard`, or `crash`
-- `description`: one-line summary of what was tried
-
-Example:
-```
-commit	score	avg_task	ppl	status	description
-a1b2c3d	-1.551	0.249	7.72	keep	baseline (current checkpoint)
-b2c3d4e	-1.156	0.164	7.48	keep	reduce reservoir to 1000 nodes
-c3d4e5f	0.000	0.000	0.00	crash	FiLM modulation OOM
-d4e5f6g	-2.000	0.200	7.92	discard	sigmoid gate worse than tanh
-```
-
-Do NOT commit results.tsv — leave it untracked.
+**Timeout:** If training exceeds 120 minutes, kill it and treat as failure.
 
 ## Key Constraints
 
 - **VRAM:** 24 GB (RTX 3090). batch_size=1 + grad_accum=16 is the safe default.
-- **Gradient checkpointing is broken** with sidecar hooks — do not enable it.
+- **Gradient checkpointing is broken** with forward hooks — do not enable it.
 - **PYTORCH_ALLOC_CONF=expandable_segments:True** required for all training runs.
-- **Minimum 1500 steps** for any signal. With grad_accum=16, 1500 steps = 93 optimizer steps. Warmup must be scaled accordingly (warmup_steps=15, gate_warmup_steps=10).
-- Gates need warmup — without it they never open (chicken-and-egg with tanh gating).
+- **5000 steps is the baseline.** Track A found this is the sweet spot. Can try shorter (3000) for quick screening.
+- Gates need warmup — without it they never open.
+- **Generation fix:** During autoregressive generation, ESN mixing is skipped when seq lengths don't match (KV-cache processes 1 token at a time but reservoir states cover full prompt). This is correct — no new reservoir info for generated tokens.
+
+## Track B Architecture
+
+Qwen3.5-0.8B has a **hybrid architecture**: 18 DeltaNet (linear attention) + 6 full-attention layers in a 3:1 pattern.
+
+**DeltaNet layer indices:** 0,1,2, 4,5,6, 8,9,10, 12,13,14, 16,17,18, 20,21,22
+**Full-attention indices:** 3, 7, 11, 15, 19, 23
+
+Track B **replaces** selected DeltaNet blocks with ESN reservoir modules:
+- `ESNReplacementInterface`: gated mix of ESN output + original DeltaNet output
+- `gate * esn_out + (1-gate) * deltanet_out` — sigmoid gate, per-element
+- Original DeltaNet module still runs; ESN output is mixed in via learned gate
 
 ## Research Directions (Ordered by Expected Impact)
 
-1. **Reduce perplexity cost** — this is the blocker. The reservoir adds +0.90 ppl. Ideas:
-   - Smaller reservoir (1000 instead of 10000) — less noise injected
-   - Fewer sidecar layers (2-3 instead of 6)
-   - Lower gate warmup target (0.05 instead of 0.1)
-   - FiLM modulation instead of cross-attention (lighter touch)
-   - Reduce memory_task_ratio (0.1 instead of 0.3) — less distribution shift
-2. **Improve task scores** (once ppl is under control):
-   - More sidecar layers at deeper positions
-   - Larger LoRA rank
-   - Different ESN parameters (higher spectral_radius for longer memory)
-3. **Architecture changes:**
-   - Replace cross-attention with simple gated linear projection
-   - Try FiLMModulation (already implemented in interface.py, never tested)
-   - Additive vs multiplicative injection
-   - Per-head gating instead of per-layer
+1. **Reduce replacement aggression** — exp1 replaced 6/18 blocks → ppl=13.76 (+101%). Try:
+   - Replace only 1-2 DeltaNet blocks instead of 6
+   - Start with gate_init=0.01 (nearly pure DeltaNet to start)
+   - Replace only late-layer DeltaNet blocks (layers 16-22)
+2. **Hybrid Track A + B** — combine sidecar hooks (Track A) with minimal DeltaNet replacement:
+   - Keep the winning GatedLinearSidecar at [3,7,11,15,23] from Track A
+   - Add 1-2 DeltaNet replacements at different layers
+3. **Alternative replacement strategy:**
+   - Instead of full replacement, use ESN as auxiliary input to DeltaNet (additive, not replacement)
+   - Multi-reservoir: fast (high leak_rate) + slow (low leak_rate) at different layers
+4. **Per-block gate learning:**
+   - Different gate_init per replaced block (deeper blocks may need more ESN influence)
+   - Learned gate schedule (curriculum from pure DeltaNet → mixed)
+
+## Gate B Success Criteria
+
+From COLLABORATIVE_PROPOSAL.md:
+1. ≥20% exact-match gain on long program-trace tasks
+2. Better memory-quality-per-byte than RoPE/YaRN-only context extension
+3. <2% perplexity degradation (ppl < 6.96)
 
 ## NEVER STOP
 
-Once the loop begins, do NOT pause to ask if you should continue. Run experiments autonomously until manually interrupted. If you run out of ideas, re-read `RESULTS.md` and `src/reservoir/interface.py` for new angles. Try combining near-misses. Try more radical changes. The loop runs until the human stops you.
+Once the loop begins, do NOT pause to ask if you should continue. Run experiments autonomously until manually interrupted. If you run out of ideas, re-read `RESULTS.md` for new angles. Try combining near-misses. Try more radical changes. The loop runs until the human stops you.

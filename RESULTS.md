@@ -83,3 +83,53 @@ Reservoir computing sidecar (ESN) bolted onto frozen Qwen3.5-0.8B via LoRA + gat
 - **Flamingo-style tanh(alpha) gating is essential.** Raw scalar gates don't open (gradient proportional to gate_value near 0). tanh gives gradient=1 at alpha=0 regardless of gate value.
 - **Don't combine tanh gate with zero-init projections.** Both zeroing mechanisms together kill all gradient flow (double-zero trap).
 - **Gradient checkpointing is incompatible with sidecar hooks.** Recomputation doesn't replay hooks consistently. Use batch_size reduction instead.
+
+---
+
+# Track B Results
+
+DeltaNet block replacement: replace selected DeltaNet (linear attention) blocks in Qwen3.5-0.8B with ESN reservoir modules.
+
+## Architecture
+
+Qwen3.5-0.8B has **18 DeltaNet + 6 full-attention layers** (3:1 pattern). Track B replaces selected DeltaNet blocks with `ESNReplacementInterface`:
+```
+output = gate * esn_projection(reservoir_states) + (1 - gate) * original_deltanet_output
+```
+- Sigmoid gate (per-element, input-dependent)
+- ESN reservoir: r=1000, same config as Track A
+- LoRA on q_proj+v_proj (same as Track A)
+- 30% synthetic memory tasks + 70% FineWeb
+
+## Track B Experiment Log
+
+| Exp | Blocks Replaced | gate_init | ppl | avg_em | Status | Notes |
+|-----|----------------|-----------|-----|--------|--------|-------|
+| B1 | 6/18 (every 3rd: 0,3,6,9,12,15) | 0.1 | 13.76 | 0.219 | baseline | Way too aggressive — ppl +101%, most tasks lost |
+
+### B1 Detail (vs Track A)
+
+| Task | Track B | Track A | Delta |
+|------|---------|---------|-------|
+| PasskeyRetrieval | 1.000 | 1.000 | = |
+| AssociativeRecall | 1.000 | 1.000 | = |
+| VariableTracking (3v) | 0.440 | 0.720 | -0.280 |
+| VariableTracking (5v) | 0.340 | 0.560 | -0.220 |
+| ProgramTrace (4s) | 0.140 | 0.180 | -0.040 |
+| ProgramTrace (6s) | 0.120 | 0.220 | -0.100 |
+| ModularArithmetic | 0.000 | 0.140 | -0.140 |
+| MultiDigitArith (all) | 0.000 | 0.940 | -0.940 |
+| AlgorithmicTransfer | 0.000 | 0.100 | -0.100 |
+
+## Track B Conclusions (so far)
+
+1. **Replacing 6/18 DeltaNet blocks is too aggressive.** Perplexity doubles (+101%), most task performance lost. DeltaNet blocks carry critical information the ESN can't replicate.
+2. **Easy tasks survive (passkey, associative recall)** but harder tasks (arithmetic, variable tracking) collapse.
+3. **Need much lighter touch:** fewer blocks, lower gate init, or additive (not replacement) integration.
+
+## Next Directions
+
+1. Replace 1-2 blocks only (late layers)
+2. Much lower gate_init (0.01) — nearly pure DeltaNet to start
+3. Hybrid: Track A sidecar hooks + minimal DeltaNet replacement
+4. Additive ESN input to DeltaNet instead of output replacement
