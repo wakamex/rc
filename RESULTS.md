@@ -108,6 +108,7 @@ output = gate * esn_projection(reservoir_states) + (1 - gate) * original_deltane
 | B1 | 6/18 (every 3rd: 0,3,6,9,12,15) | 0.1 | 13.76 | 0.219 | discard | Way too aggressive — ppl +101%, most tasks lost |
 | B2 | 1/18 (DN#8 = layer 10) | 0.05 | 6.77 | 0.364 | keep | Beats Track A on both metrics. ProgramTrace +111% |
 | **B3** | **2/18 (DN#8 + DN#16)** | **0.05** | **6.74** | **0.368** | **best** | **Gains compound. CompositionalGen now positive (+133%)** |
+| B4 | 3/18 (DN#8,9,16) | 0.05 | 7.34 | 0.359 | discard | Too many layers — ppl above 7.0 threshold. AlgoTransfer up but core tasks down |
 
 ### B1 Detail (vs Track A)
 
