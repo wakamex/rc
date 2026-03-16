@@ -127,9 +127,13 @@ output = gate * esn_projection(reservoir_states) + (1 - gate) * original_deltane
 2. **Easy tasks survive (passkey, associative recall)** but harder tasks (arithmetic, variable tracking) collapse.
 3. **Need much lighter touch:** fewer blocks, lower gate init, or additive (not replacement) integration.
 
-## Next Directions
+## Research Plan
 
-1. Replace 1-2 blocks only (late layers)
-2. Much lower gate_init (0.01) — nearly pure DeltaNet to start
-3. Hybrid: Track A sidecar hooks + minimal DeltaNet replacement
-4. Additive ESN input to DeltaNet instead of output replacement
+### Phase 1: Distillation Sweep
+For each of 18 DeltaNet layers: capture input/output activations, train ESN readout (ridge regression) to reproduce DeltaNet output. Map which layers are "reservoir-compatible" (low reconstruction MSE → safe to replace). This is cheap (~30 min, no gradient descent).
+
+### Phase 2: Single-Layer Replacement
+Replace the easiest layer (lowest distillation loss) with ESN, **initialized from distillation weights** (warm start). Fine-tune with very low gate_init (0.01). B1 failed because we cold-swapped 6 layers — Phase 2 is surgical and informed.
+
+### Phase 3: ESN as Forgetting Controller
+Don't replace DeltaNet. Keep it intact, run ESN in parallel. Use ESN state to *gate* DeltaNet's output — multiplicative modulation instead of additive injection. The reservoir's dynamics naturally perform relevance filtering (Dambre decomposition: tracks linear memory + nonlinear interaction patterns). This tests the hypothesis that the reservoir's value is not as a memory store but as a memory *controller* — telling the LLM what's worth keeping.
