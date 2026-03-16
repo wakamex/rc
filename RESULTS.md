@@ -129,8 +129,21 @@ output = gate * esn_projection(reservoir_states) + (1 - gate) * original_deltane
 
 ## Research Plan
 
-### Phase 1: Distillation Sweep
-For each of 18 DeltaNet layers: capture input/output activations, train ESN readout (ridge regression) to reproduce DeltaNet output. Map which layers are "reservoir-compatible" (low reconstruction MSE → safe to replace). This is cheap (~30 min, no gradient descent).
+### Phase 1: Distillation Sweep (COMPLETE)
+
+Ran ridge regression (ESN r=1000 → DeltaNet output) for all 18 layers. Key findings:
+
+| Rank | Layer | Rel MSE | Delta/Out | Verdict |
+|------|-------|---------|-----------|---------|
+| 1 (easiest) | 10 | 0.177 | 0.155 | Best candidate — moderate delta, lowest rel MSE |
+| 2 | 21 | 0.185 | 0.093 | Late layer, nearly residual |
+| 3 | 12 | 0.189 | 0.144 | Good candidate |
+| ... | | | | |
+| 16 | 1 | 0.254 | 0.315 | Early, hard to replace |
+| 17 | 2 | 0.258 | 0.374 | Early, hard to replace |
+| 18 (hardest) | 0 | 0.266 | 1.154 | First layer, completely changes input |
+
+**Pattern:** Early layers (0-5) are hardest — foundational token processing. Mid/late layers (9-13, 20-21) are easiest. Raw MSE grows with depth (larger activations) but relative MSE shows mid-layers are best match.
 
 ### Phase 2: Single-Layer Replacement
 Replace the easiest layer (lowest distillation loss) with ESN, **initialized from distillation weights** (warm start). Fine-tune with very low gate_init (0.01). B1 failed because we cold-swapped 6 layers — Phase 2 is surgical and informed.
