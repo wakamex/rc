@@ -58,8 +58,12 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--reservoir_seed", type=int, default=42)
 
     # DeltaNet replacement config
+    p.add_argument("--replace_layers", type=int, nargs="*", default=None,
+                   help="Specific DeltaNet sequence indices to replace (e.g. --replace_layers 8). "
+                        "Overrides --replace_every_nth_deltanet if provided.")
     p.add_argument("--replace_every_nth_deltanet", type=int, default=3,
-                   help="Replace every N-th DeltaNet block (default: 3 → 6 of 18).")
+                   help="Replace every N-th DeltaNet block (default: 3 → 6 of 18). "
+                        "Ignored if --replace_layers is set.")
     p.add_argument("--num_deltanet_blocks", type=int, default=18,
                    help="Expected number of DeltaNet blocks in Qwen3.5 (default: 18).")
     p.add_argument("--replacement_gate_init", type=float, default=0.1,
@@ -482,7 +486,10 @@ def train(args: argparse.Namespace) -> None:
     # Determine which DeltaNet blocks to replace
     num_dn = args.num_deltanet_blocks
     n_step = args.replace_every_nth_deltanet
-    selected_dn_indices = list(range(0, num_dn, n_step))
+    if args.replace_layers is not None:
+        selected_dn_indices = args.replace_layers
+    else:
+        selected_dn_indices = list(range(0, num_dn, n_step))
     logger.info("Replacing DeltaNet blocks at indices: %s (%d of %d)",
                 selected_dn_indices, len(selected_dn_indices), num_dn)
 

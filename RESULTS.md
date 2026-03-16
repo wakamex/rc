@@ -105,7 +105,8 @@ output = gate * esn_projection(reservoir_states) + (1 - gate) * original_deltane
 
 | Exp | Blocks Replaced | gate_init | ppl | avg_em | Status | Notes |
 |-----|----------------|-----------|-----|--------|--------|-------|
-| B1 | 6/18 (every 3rd: 0,3,6,9,12,15) | 0.1 | 13.76 | 0.219 | baseline | Way too aggressive — ppl +101%, most tasks lost |
+| B1 | 6/18 (every 3rd: 0,3,6,9,12,15) | 0.1 | 13.76 | 0.219 | discard | Way too aggressive — ppl +101%, most tasks lost |
+| **B2** | **1/18 (DN#8 = layer 10)** | **0.05** | **6.77** | **0.364** | **best** | **Beats Track A on both metrics. ProgramTrace +111%** |
 
 ### B1 Detail (vs Track A)
 
@@ -121,11 +122,28 @@ output = gate * esn_projection(reservoir_states) + (1 - gate) * original_deltane
 | MultiDigitArith (all) | 0.000 | 0.940 | -0.940 |
 | AlgorithmicTransfer | 0.000 | 0.100 | -0.100 |
 
+### B2 Detail (vs Track A)
+
+| Task | B2 | Track A | Delta |
+|------|-----|---------|-------|
+| PasskeyRetrieval | 1.000 | 1.000 | = |
+| AssociativeRecall | 1.000 | 1.000 | = |
+| MultiDigitArith (3-digit add) | 0.940 | 0.940 | = |
+| MultiDigitArith (4-digit add) | **0.960** | 0.940 | +0.020 |
+| VariableTracking (3v) | **0.740** | 0.720 | +0.020 |
+| VariableTracking (5v) | 0.540 | 0.560 | -0.020 |
+| **ProgramTrace (4s)** | **0.380** | 0.180 | **+0.200** |
+| **ProgramTrace (6s)** | **0.280** | 0.220 | **+0.060** |
+| MultiDigitArith (3-digit mul) | 0.140 | 0.140 | = |
+| ModularArithmetic | 0.020 | 0.140 | -0.120 |
+
 ## Track B Conclusions (so far)
 
-1. **Replacing 6/18 DeltaNet blocks is too aggressive.** Perplexity doubles (+101%), most task performance lost. DeltaNet blocks carry critical information the ESN can't replicate.
-2. **Easy tasks survive (passkey, associative recall)** but harder tasks (arithmetic, variable tracking) collapse.
-3. **Need much lighter touch:** fewer blocks, lower gate init, or additive (not replacement) integration.
+1. **Replacing 6/18 DeltaNet blocks is too aggressive.** Perplexity doubles (+101%), most task performance lost.
+2. **Replacing 1/18 (layer 10) works beautifully.** ppl=6.77 (-0.7%), avg_em=0.364 — beats Track A.
+3. **ProgramTrace is the standout gain** — +111% on 4-step traces. Directly relevant to Gate B criterion #1.
+4. **Distillation sweep was critical** — it identified layer 10 as the best candidate (lowest rel_mse=0.177).
+5. **Low gate_init (0.05) with long warmup (50 steps) is essential** — B1's gate_init=0.1 was too aggressive even with warmup.
 
 ## Research Plan
 
