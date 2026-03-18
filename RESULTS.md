@@ -110,7 +110,10 @@ output = gate * esn_projection(reservoir_states) + (1 - gate) * original_deltane
 | **B3** | **2/18 (DN#8 + DN#16)** | **0.05** | **6.74** | **0.368** | **best** | **Gains compound. CompositionalGen now positive (+133%)** |
 | B4 | 3/18 (DN#8,9,16) | 0.05 | 7.34 | 0.359 | discard | Too many layers — ppl above 7.0 threshold. AlgoTransfer up but core tasks down |
 | B5 | 2/18 (DN#8,16) | 0.1 | 6.76 | 0.367 | keep | Higher gate ≈ same as B3 — model learns gate value regardless of init |
-| **B6** | **2/18 controller (DN#8,16)** | **0.9** | **6.75** | **0.364** | **keep** | **Phase 3: forgetting controller matches B3 — ESN content doesn't matter, only gating signal** |
+| B6 | 2/18 controller (DN#8,16) | 0.9 | 6.75 | 0.364 | **INVALID** | Hooks were broken — this was LoRA-only |
+| **B7** | **2/18 replacement (DN#8,16) FIXED** | **0.05** | **7.17** | **0.249** | **real** | **First real ESN result on these layers. ESN hurts vs LoRA-only** |
+
+**CRITICAL BUG FOUND:** B2-B6 had a bug where `DeltaNetReplacementManager` computed its own layer indices from `replace_every_nth` instead of using the `--replace_layers` argument. Hooks never fired — those results were LoRA-only baselines. B1 (which used `replace_every_nth=3` without `--replace_layers`) was the only experiment where hooks actually worked. B7 is the first fixed result.
 
 ### B1 Detail (vs Track A)
 
@@ -141,31 +144,20 @@ output = gate * esn_projection(reservoir_states) + (1 - gate) * original_deltane
 | MultiDigitArith (3-digit mul) | 0.140 | 0.140 | = |
 | ModularArithmetic | 0.020 | 0.140 | -0.120 |
 
-## Gate A Re-assessment (B3 vs Track A)
+## Gate A Re-assessment — RETRACTED
 
-B3 passes **all 5 Gate A criteria** — Track A passed only 4/5 (failed compositional gen).
-
-| # | Criterion | Target | Track A | B3 (Track B) |
-|---|-----------|--------|---------|--------------|
-| 1 | Long-context retrieval | ≥10% | PASS (Passkey +19900%) | PASS (Passkey +19900%) |
-| 2 | Algorithmic memory | ≥15% | PASS (VarTrack +64%) | PASS (VarTrack +54%) |
-| 3 | Compositional gen | ≥10% | **FAIL** (CompGen -47%) | **PASS** (CompGen +87%) |
-| 4 | Inference latency | ≤20% | PASS (~15-20%) | PASS (~15-20%) |
-| 5 | Perplexity degradation | <2% | PASS (+0.3%) | PASS (**-1.2%**) |
-
-This changes the paper story: **surgical DeltaNet replacement at distillation-guided layers beats both vanilla and bolt-on augmentation.** The ppl *improvement* (6.74 < 6.82) is particularly notable — it suggests those DeltaNet layers were retaining information that actively hurts next-token prediction, and the ESN's fading memory discards stale associations. This is direct evidence for the forgetting hypothesis before building an explicit controller.
-
-**B3 replaced layers 10 (mid-network) and 21 (late-network).** The ESN succeeds at both compositional processing and prediction-stage processing, supporting the memory-controller framing.
+~~B3 passes all 5 Gate A criteria~~ — **RETRACTED.** B3's hooks were broken; those results were LoRA-only. The actual ESN replacement result (B7) has ppl=7.17 (+5.1%), which fails the <2% ppl criterion. Track A remains the best ESN-enhanced result (4/5 gates passed).
 
 ## Track B Conclusions
 
-1. **Replacing 6/18 DeltaNet blocks is too aggressive.** Perplexity doubles (+101%), most task performance lost.
-2. **Replacing 1-2 layers (guided by distillation sweep) works.** B3 (2 layers) is best: ppl=6.74, avg_em=0.368 — beats Track A on both metrics.
-3. **B3 passes all 5 Gate A criteria** — including compositional gen which Track A failed. This is qualitatively different, not incremental.
-4. **Ppl below vanilla is evidence for the forgetting hypothesis.** DeltaNet layers 10 and 21 were retaining stale associations that hurt prediction. ESN's fading memory naturally discards them.
-5. **Distillation sweep was critical** — it identified layer 10 as the best candidate (lowest rel_mse=0.177).
-6. **Gate init value doesn't matter much** (B3 vs B5) — the model learns the gate value regardless of initialization. Consistent with the write-head feedback problem.
-7. **3 layers crosses the ppl threshold** (B4: ppl=7.34 > 7.0). Replacement plateaus at 2 layers / ~0.368 avg_em.
+1. **B2-B6 were invalid** — hooks never fired due to `DeltaNetReplacementManager` bug. Those results were LoRA-only baselines.
+2. **LoRA + memory tasks alone gives avg_em≈0.365, ppl≈6.75.** This is a strong baseline — LoRA adapts to synthetic memory tasks effectively.
+3. **Real ESN replacement (B7, 2 layers) hurts.** ppl=7.17 (+5.1%), avg_em=0.249. The ESN disrupts DeltaNet's learned representations.
+4. **B1 (6 layers, hooks active) was genuinely destructive** — ppl=13.76 (+101%). This was correctly measured.
+5. **Distillation sweep identified replaceable layers** but low ridge regression MSE doesn't predict fine-tuning success.
+6. **The forgetting hypothesis remains untested.** The "ppl below vanilla" evidence was actually LoRA being good, not ESN forgetting.
+
+**What we actually know:** LoRA + 30% memory tasks is a strong recipe. ESN replacement at any scale hurts vs LoRA-only. The forgetting controller (Phase 3) needs to be rerun with the bug fix to get a real test.
 
 ## Research Plan
 

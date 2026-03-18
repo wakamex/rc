@@ -377,6 +377,7 @@ class DeltaNetReplacementManager:
         self._handles: list[Any] = []
         self._reservoir_states: np.ndarray | None = None
         self._pre_hidden_store: dict[str, torch.Tensor] = {}
+        self.hook_fire_count: int = 0
 
         if selected_indices is not None:
             self._selected_block_indices = selected_indices
@@ -441,6 +442,7 @@ class DeltaNetReplacementManager:
                 def post_hook(module: nn.Module, inputs: tuple, output: Any) -> Any:
                     if self._reservoir_states is None or k not in self._pre_hidden_store:
                         return output
+                    self.hook_fire_count += 1
                     interface = self.replacement_interfaces[k]
                     pre_hidden = self._pre_hidden_store[k].to(
                         device=next(interface.parameters()).device
@@ -716,8 +718,9 @@ def train(args: argparse.Namespace) -> None:
         if global_step % args.log_interval == 0:
             elapsed = time.time() - t_start
             avg_loss = accum_loss * args.grad_accum / args.log_interval
-            logger.info("step=%d  loss=%.4f  lr=%.2e  elapsed=%.0fs",
-                        global_step, avg_loss, scheduler.get_last_lr()[0], elapsed)
+            logger.info("step=%d  loss=%.4f  lr=%.2e  elapsed=%.0fs  hooks=%d",
+                        global_step, avg_loss, scheduler.get_last_lr()[0], elapsed,
+                        replacement_manager.hook_fire_count)
             try:
                 import wandb  # type: ignore[import]
                 wandb.log({
