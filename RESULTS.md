@@ -140,13 +140,14 @@ output = gate * esn_projection(reservoir_states) + (1 - gate) * original_deltane
 | MultiDigitArith (3-digit mul) | 0.140 | 0.140 | = |
 | ModularArithmetic | 0.020 | 0.140 | -0.120 |
 
-## Track B Conclusions (so far)
+## Track B Conclusions
 
 1. **Replacing 6/18 DeltaNet blocks is too aggressive.** Perplexity doubles (+101%), most task performance lost.
-2. **Replacing 1/18 (layer 10) works beautifully.** ppl=6.77 (-0.7%), avg_em=0.364 — beats Track A.
+2. **Replacing 1-2 layers (guided by distillation sweep) works.** B3 (2 layers) is best: ppl=6.74, avg_em=0.368 — beats Track A on both metrics.
 3. **ProgramTrace is the standout gain** — +111% on 4-step traces. Directly relevant to Gate B criterion #1.
 4. **Distillation sweep was critical** — it identified layer 10 as the best candidate (lowest rel_mse=0.177).
-5. **Low gate_init (0.05) with long warmup (50 steps) is essential** — B1's gate_init=0.1 was too aggressive even with warmup.
+5. **Gate init value doesn't matter much** (B3 vs B5) — the model learns the gate value regardless of initialization. This is consistent with the write-head feedback problem: the model can't shape what the reservoir computes, only learn to read whatever it produces.
+6. **3 layers crosses the ppl threshold** (B4: ppl=7.34 > 7.0). The replacement approach plateaus at 2 layers / ~0.368 avg_em.
 
 ## Research Plan
 
@@ -166,8 +167,54 @@ Ran ridge regression (ESN r=1000 → DeltaNet output) for all 18 layers. Key fin
 
 **Pattern:** Early layers (0-5) are hardest — foundational token processing. Mid/late layers (9-13, 20-21) are easiest. Raw MSE grows with depth (larger activations) but relative MSE shows mid-layers are best match.
 
-### Phase 2: Single-Layer Replacement
-Replace the easiest layer (lowest distillation loss) with ESN, **initialized from distillation weights** (warm start). Fine-tune with very low gate_init (0.01). B1 failed because we cold-swapped 6 layers — Phase 2 is surgical and informed.
+### Phase 2: Single/Multi-Layer Replacement (COMPLETE — B3 is best)
 
-### Phase 3: ESN as Forgetting Controller
-Don't replace DeltaNet. Keep it intact, run ESN in parallel. Use ESN state to *gate* DeltaNet's output — multiplicative modulation instead of additive injection. The reservoir's dynamics naturally perform relevance filtering (Dambre decomposition: tracks linear memory + nonlinear interaction patterns). This tests the hypothesis that the reservoir's value is not as a memory store but as a memory *controller* — telling the LLM what's worth keeping.
+Replaced easiest layers guided by Phase 1. B2 (1 layer) and B3 (2 layers) both beat Track A. B4 (3 layers) crossed ppl threshold. B5 showed gate_init is irrelevant. Plateau reached at ~0.368 avg_em.
+
+### Phase 3: ESN as Forgetting Controller (NEXT)
+
+**Core hypothesis:** The reservoir's value is not as a memory store but as a memory *controller*. Instead of replacing DeltaNet or adding information to the residual stream, use the ESN to tell DeltaNet what's worth keeping.
+
+**Why this is different from Track A and Phase 2:**
+- Track A (sidecar): ESN state *added* to residual stream — additive injection
+- Phase 2 (replacement): ESN output *replaces* DeltaNet output — substitution
+- Phase 3 (controller): ESN state *modulates* DeltaNet output — multiplicative gating
+
+**How it works:**
+```
+deltanet_output = DeltaNet(hidden_states)        # original, untouched
+esn_state = ESN.step(hidden_states)              # parallel reservoir
+relevance = sigmoid(linear(esn_state))           # importance signal ∈ [0,1]
+output = deltanet_output * relevance             # gate what DeltaNet retains
+```
+
+**Why the reservoir is well-suited for this (Takens/Dambre theory):**
+- ESN near edge of chaos naturally performs relevance filtering as a byproduct of its dynamics
+- Inputs that perturb the reservoir state persistently = dynamically important → keep
+- Inputs that decay quickly = dynamically irrelevant → forgettable
+- Dambre decomposition: reservoir tracks both linear memory (what happened) and nonlinear interactions (what patterns are forming) — not recency-based like FIFO
+- A memory from 500 steps ago that's part of an ongoing pattern stays important; a recent but isolated input can be forgotten
+
+**What makes this different from attention:**
+- Attention: "what's relevant to the current query?" — reactive, pairwise
+- Reservoir gating: "what's dynamically alive in the system's state?" — proactive, holistic, no query needed
+
+**Predictions:**
+- Short context tasks (< 1k tokens): expect parity with vanilla
+- Long context, mostly relevant info: expect parity
+- Long context, high noise/distractor ratio: ESN gating should win
+- Gap should widen as memory demands increase
+
+**Spectral radius sweep is critical:** optimal for downstream performance may differ from optimal for distillation — ESN might beat DeltaNet by forgetting things DeltaNet wastefully retains.
+
+**Implementation:** ~200 lines. Hook into DeltaNet layers, run ESN in parallel on same input, modulate DeltaNet output with learned gate driven by ESN state.
+
+### Future: AttnRes-style Fusion
+
+Instead of fixed injection points (Track A) or replacement (Phase 2) or per-layer gating (Phase 3), make the ESN state an additional "source" in a depth-wise attention mechanism (inspired by AttnRes). Each layer learns to attend over both previous-layer outputs AND ESN state. This subsumes all three approaches but is a bigger architectural change.
+
+## Known Limitations
+
+- **Write-head feedback problem:** The ESN input projection has no gradient signal about what the reservoir dynamics actually do with the input. The model can learn to *read* the reservoir but can't *shape* what it computes. This may explain why hyperparameters like gate_init have limited effect (B3≈B5).
+- **No persistent state across forward calls:** The ESN resets per sequence. For replacement (Phase 2), this means the ESN is a per-sequence feature extractor, not a persistent memory across sequences.
+- **Code duplication:** 5+ near-duplicate training scripts. Should consolidate into a single parameterized training script.

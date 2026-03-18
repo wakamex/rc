@@ -47,82 +47,58 @@ Qwen3.5-0.8B has a **hybrid architecture**: 18 DeltaNet (linear attention) + 6 f
 
 ## Research Plan (Three Phases)
 
-### Phase 1: Distillation Sweep (do this first)
+### Phase 1: Distillation Sweep — COMPLETE
 
-**Goal:** Map which DeltaNet layers are "reservoir-compatible" — can the ESN reproduce what DeltaNet produces?
+Script: `scripts/distill_sweep.py`. Ridge regression ESN→DeltaNet output for all 18 layers.
+Result: Layer 10 easiest (rel_mse=0.177), early layers hardest. See RESULTS.md for full table.
 
-**Method:** For each of 18 DeltaNet layers independently:
-1. Run a batch of data through the frozen model
-2. Capture each DeltaNet layer's input and output activations
-3. Run the same input through an ESN (r=1000)
-4. Train a linear readout (ridge regression) to map ESN states → DeltaNet output
-5. Measure reconstruction MSE (distillation loss)
+### Phase 2: Layer Replacement — COMPLETE (B3 is best)
 
-**What this tells us:**
-- Low distillation loss → ESN can replicate this layer's function → safe to replace
-- High distillation loss → DeltaNet is doing something the reservoir can't → don't replace
-- The loss curve across layers maps the difficulty gradient
+B2 (1 layer) and B3 (2 layers) both beat Track A. B4 (3 layers) crossed ppl threshold. B5 showed gate_init irrelevant. **Plateau at ~0.368 avg_em with 2 layers.**
 
-**This is cheap** — no gradient descent, just linear regression. Should take ~30 min total.
+### Phase 3: ESN as Forgetting Controller — NEXT
 
-**Script:** `scripts/distill_sweep.py` (to be created)
+**Goal:** Don't replace DeltaNet. Keep it intact, run ESN in parallel. Use ESN state to *modulate* DeltaNet's output — the reservoir tells the LLM what's worth keeping.
 
-### Phase 2: Single-Layer Replacement (informed by Phase 1)
+**Core hypothesis:** A reservoir near the edge of chaos naturally performs relevance filtering. Inputs that perturb reservoir state persistently are dynamically important (keep). Inputs that decay are forgettable. This is a byproduct of the dynamics — it's free.
 
-**Goal:** Replace the easiest DeltaNet layer (lowest distillation loss from Phase 1) with an ESN and fine-tune.
+**The theoretical basis (Takens/Dambre):**
+- Takens' theorem: ESN state is an implicit nonlinear delay embedding — it reconstructs the input stream's dynamical structure without choosing τ or embedding dimension
+- Dambre decomposition: reservoir tracks both linear memory (what happened) and nonlinear interactions (what patterns are forming across time)
+- This isn't recency-based like FIFO — a memory from 500 steps ago that's part of an ongoing pattern stays important, while a recent isolated input can be forgotten
+- The reservoir computes a continuous, implicit importance score for every piece of information, for free
 
-**Key difference from B1:**
-- Replace only ONE layer (B1 replaced 6 → catastrophic ppl blowup)
-- Initialize ESN readout from the distillation weights (warm start, not random)
-- Much lower gate_init (0.01 — nearly pure DeltaNet to start)
+**How it differs from Track A and Phase 2:**
+- Track A: ESN state *added* to residual stream (additive injection, memory store)
+- Phase 2: ESN output *replaces* DeltaNet output (substitution)
+- **Phase 3: ESN state *modulates* DeltaNet output (multiplicative gating, memory controller)**
+- Attention asks "what's relevant to the current query?" — reactive, pairwise
+- Reservoir gating asks "what's dynamically alive?" — proactive, holistic, no query needed
 
-**Method:**
-1. Pick the layer with lowest distillation loss from Phase 1
-2. Initialize ESNReplacementInterface readout from distillation weights
-3. Fine-tune with gate_warmup from 0 → 0.05 over 50 optimizer steps
-4. Train 5000 steps, eval on full 23-benchmark suite
-
-**Success criterion:** ppl < 7.0 AND avg_em ≥ Track A (0.357)
-
-**Then iterate:** try 2 layers (the two easiest), try harder layers, etc.
-
-### Phase 3: ESN as Forgetting Controller (the cleaner experiment)
-
-**Goal:** Don't replace DeltaNet at all. Keep it intact, run ESN in parallel, use ESN state to *gate* DeltaNet's memory retention.
-
-**Core hypothesis:** The reservoir's dynamics naturally perform relevance filtering. Inputs that perturb the reservoir state persistently are dynamically important; inputs that decay are forgettable. Use this signal to tell DeltaNet what to keep and what to evict.
-
-**How it works:**
+**Implementation (~200 lines):**
 ```
-deltanet_output = DeltaNet(hidden_states)           # original, untouched
-esn_state = ESN.step(hidden_states)                 # parallel reservoir
-relevance = sigmoid(linear(esn_state))              # importance signal ∈ [0,1]
-output = deltanet_output * relevance                # gate what DeltaNet retains
+deltanet_output = DeltaNet(hidden_states)        # original, untouched
+esn_state = ESN.step(hidden_states)              # parallel reservoir
+relevance = sigmoid(linear(esn_state))           # importance signal ∈ [0,1]
+output = deltanet_output * relevance             # gate what DeltaNet retains
 ```
 
-**Why this is different from Track A sidecar:**
-- Track A *adds* reservoir info to the residual stream (additive injection)
-- Phase 3 *modulates* DeltaNet's own output (multiplicative gating)
-- Track A uses reservoir as memory; Phase 3 uses reservoir as memory *controller*
-
-**Why the reservoir is well-suited:**
-- Near edge of chaos, reservoir naturally computes implicit importance scores
-- Dambre decomposition: tracks both linear memory (what happened) and nonlinear interactions (what patterns are forming)
-- Not recency-based like FIFO — a memory from 500 steps ago that's part of an ongoing pattern stays important
-- Cheap: ESN update is single matrix multiply + tanh, negligible vs transformer forward pass
-
-**What to measure:**
-- Short context tasks (< 1k tokens): expect parity with vanilla
-- Long context with mostly relevant info: expect parity
-- Long context with high noise/distractor ratio: this is where ESN gating should win
-- The gap should widen as memory demands increase
+Hook into DeltaNet layers' forward pass. Can reuse the existing `DeltaNetReplacementManager` hook infrastructure, just change the mixing formula from `gate * esn + (1-gate) * deltanet` to `deltanet * relevance_from_esn`.
 
 **Spectral radius sweep is critical:**
 - Run at multiple spectral radii (0.8, 0.9, 0.95, 0.99, 1.0)
-- Optimal for downstream performance may differ from optimal for distillation
-- ESN might beat DeltaNet by forgetting things DeltaNet wastefully retains
+- The optimal radius for downstream performance may differ from the optimal for distillation
+- If the forgetting-controller hypothesis is right, the ESN might beat DeltaNet by forgetting things DeltaNet wastefully retains
 
-**Script:** New training script needed — similar to Track A sidecar but with multiplicative gating on DeltaNet output instead of additive injection.
+**Predictions:**
+- Short context tasks (< 1k tokens): expect parity with vanilla
+- Long context, mostly relevant info: expect parity
+- Long context, high noise/distractor ratio: ESN gating should win
+- Gap should widen as memory demands increase
+
+### Future: AttnRes-style Fusion
+
+Instead of fixed injection points or per-layer gating, make the ESN state an additional "source" in depth-wise attention (inspired by AttnRes paper). Each layer learns to attend over both previous-layer outputs AND ESN state. Subsumes all approaches but requires deeper architectural changes.
 
 ## The Experiment Loop
 
