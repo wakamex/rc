@@ -66,6 +66,9 @@ def parse_args() -> argparse.Namespace:
                         "Ignored if --replace_layers is set.")
     p.add_argument("--num_deltanet_blocks", type=int, default=18,
                    help="Expected number of DeltaNet blocks in Qwen3.5 (default: 18).")
+    p.add_argument("--mode", default="replacement", choices=["replacement", "controller"],
+                   help="'replacement': gate*esn + (1-gate)*deltanet. "
+                        "'controller': deltanet * relevance_from_esn (forgetting controller).")
     p.add_argument("--replacement_gate_init", type=float, default=0.1,
                    help="Initial gate value for ESN/DeltaNet mix (0=pure DeltaNet, 1=pure ESN).")
     p.add_argument("--gate_warmup_steps", type=int, default=10,
@@ -223,6 +226,80 @@ class ESNReplacementInterface(nn.Module):
 
         # Gated mix
         return gate * esn_out + (1.0 - gate) * deltanet_output
+
+
+class ESNForgettingController(nn.Module):
+    """ESN-based forgetting controller for DeltaNet blocks.
+
+    Instead of replacing DeltaNet output, this modulates it multiplicatively.
+    The ESN's dynamics provide a relevance signal: inputs that perturb the
+    reservoir persistently are important (keep), inputs that decay are
+    forgettable.
+
+    output = deltanet_output * relevance_from_esn
+
+    The reservoir acts as a memory *controller*, not a memory store.
+    """
+
+    def __init__(
+        self,
+        hidden_dim: int,
+        reservoir_dim: int,
+        gate_init: float = 0.9,
+    ) -> None:
+        super().__init__()
+        self.hidden_dim = hidden_dim
+        self.reservoir_dim = reservoir_dim
+
+        # Project ESN states → per-element relevance signal
+        self.relevance_proj = nn.Linear(reservoir_dim, hidden_dim)
+        self.relevance_norm = nn.LayerNorm(hidden_dim)
+
+        # Initialize bias so sigmoid output ≈ gate_init (start near identity)
+        gate_bias_init = math.log(gate_init / (1.0 - gate_init + 1e-6))
+        nn.init.constant_(self.relevance_proj.bias, gate_bias_init)
+        # Small weights so initial relevance is mostly uniform
+        nn.init.normal_(self.relevance_proj.weight, std=0.01)
+
+    def forward(
+        self,
+        pre_hidden: torch.Tensor,
+        deltanet_output: torch.Tensor,
+        reservoir_states: np.ndarray | torch.Tensor,
+    ) -> torch.Tensor:
+        """Modulate DeltaNet output with ESN-derived relevance signal.
+
+        Args:
+            pre_hidden: Input to the DeltaNet block (unused, kept for API compat).
+            deltanet_output: Output from the DeltaNet block, (B, T, H).
+            reservoir_states: ESN states, (B, T, reservoir_dim).
+
+        Returns:
+            Modulated output, same shape as deltanet_output.
+        """
+        # Convert reservoir states (gradient stops at boundary)
+        if isinstance(reservoir_states, np.ndarray):
+            r = torch.from_numpy(np.asarray(reservoir_states, dtype=np.float32))
+            r = r.to(device=deltanet_output.device, dtype=deltanet_output.dtype)
+        else:
+            r = reservoir_states.detach().to(
+                device=deltanet_output.device, dtype=deltanet_output.dtype
+            )
+
+        if r.ndim == 2:
+            r = r.unsqueeze(0).expand(deltanet_output.shape[0], -1, -1)
+
+        # Skip during autoregressive generation (no new reservoir info)
+        if r.shape[1] != deltanet_output.shape[1]:
+            return deltanet_output
+
+        # Compute relevance signal from ESN state
+        relevance = torch.sigmoid(
+            self.relevance_norm(self.relevance_proj(r))
+        )  # (B, T, H) ∈ [0, 1]
+
+        # Multiplicative gating: modulate what DeltaNet retains
+        return deltanet_output * relevance
 
 
 # ---------------------------------------------------------------------------
@@ -402,7 +479,7 @@ def _save_sidecar_config(
     """Save sidecar configuration to JSON for eval loading."""
     cfg = {
         "track": "B",
-        "integration": "deltanet_replacement",
+        "integration": args.mode,
         "reservoir_size": args.reservoir_size,
         "spectral_radius": args.spectral_radius,
         "leak_rate": args.leak_rate,
@@ -490,15 +567,17 @@ def train(args: argparse.Namespace) -> None:
         selected_dn_indices = args.replace_layers
     else:
         selected_dn_indices = list(range(0, num_dn, n_step))
-    logger.info("Replacing DeltaNet blocks at indices: %s (%d of %d)",
-                selected_dn_indices, len(selected_dn_indices), num_dn)
+    logger.info("Mode: %s — DeltaNet blocks at indices: %s (%d of %d)",
+                args.mode, selected_dn_indices, len(selected_dn_indices), num_dn)
 
-    # Build ESNReplacementInterface for each selected DeltaNet block
+    # Build interface for each selected DeltaNet block
+    InterfaceClass = ESNForgettingController if args.mode == "controller" else ESNReplacementInterface
+    controller_gate_init = 0.9  # start near identity for controller mode
     replacement_interfaces = nn.ModuleDict({
-        str(idx): ESNReplacementInterface(
+        str(idx): InterfaceClass(
             hidden_dim=hidden_dim,
             reservoir_dim=args.reservoir_size,
-            gate_init=args.replacement_gate_init,
+            gate_init=controller_gate_init if args.mode == "controller" else args.replacement_gate_init,
         )
         for idx in selected_dn_indices
     })
@@ -600,7 +679,8 @@ def train(args: argparse.Namespace) -> None:
         replacement_manager.set_reservoir_states(reservoir_states)
 
         # Gate warmup: ramp gate bias from -inf (sigmoid→0) to target
-        if args.gate_warmup_steps > 0:
+        # Skip for controller mode — controller starts near 1.0 (identity) and learns to decrease
+        if args.gate_warmup_steps > 0 and args.mode == "replacement":
             opt_step = global_step // args.grad_accum
             if opt_step < args.gate_warmup_steps:
                 progress = opt_step / args.gate_warmup_steps

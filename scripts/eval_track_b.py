@@ -37,6 +37,7 @@ from src.types import EvalResult  # noqa: E402
 
 # Re-use classes from the training script
 from scripts.train_track_b_deltanet import (  # noqa: E402
+    ESNForgettingController,
     ESNReplacementInterface,
     DeltaNetReplacementManager,
     get_transformer_layers,
@@ -306,12 +307,15 @@ def main() -> None:
         esn_cpu = ESN(reservoir_cfg, input_dim=hidden_dim)
         esn = esn_cpu.to_gpu(args.device) if device.type == "cuda" else esn_cpu
 
-        # Build replacement interfaces
+        # Build interfaces (controller or replacement based on saved config)
+        mode = sc_cfg.get("integration", "replacement")
+        InterfaceClass = ESNForgettingController if mode == "controller" else ESNReplacementInterface
+        controller_gate_init = 0.9 if mode == "controller" else gate_init
         replacement_interfaces = nn.ModuleDict({
-            str(idx): ESNReplacementInterface(
+            str(idx): InterfaceClass(
                 hidden_dim=hidden_dim,
                 reservoir_dim=reservoir_size,
-                gate_init=gate_init,
+                gate_init=controller_gate_init,
             )
             for idx in selected_dn_indices
         })
