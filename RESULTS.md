@@ -110,6 +110,7 @@ output = gate * esn_projection(reservoir_states) + (1 - gate) * original_deltane
 | **B3** | **2/18 (DN#8 + DN#16)** | **0.05** | **6.74** | **0.368** | **best** | **Gains compound. CompositionalGen now positive (+133%)** |
 | B4 | 3/18 (DN#8,9,16) | 0.05 | 7.34 | 0.359 | discard | Too many layers — ppl above 7.0 threshold. AlgoTransfer up but core tasks down |
 | B5 | 2/18 (DN#8,16) | 0.1 | 6.76 | 0.367 | keep | Higher gate ≈ same as B3 — model learns gate value regardless of init |
+| **B6** | **2/18 controller (DN#8,16)** | **0.9** | **6.75** | **0.364** | **keep** | **Phase 3: forgetting controller matches B3 — ESN content doesn't matter, only gating signal** |
 
 ### B1 Detail (vs Track A)
 
