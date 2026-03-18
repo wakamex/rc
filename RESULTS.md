@@ -111,7 +111,8 @@ output = gate * esn_projection(reservoir_states) + (1 - gate) * original_deltane
 | B4 | 3/18 (DN#8,9,16) | 0.05 | 7.34 | 0.359 | discard | Too many layers — ppl above 7.0 threshold. AlgoTransfer up but core tasks down |
 | B5 | 2/18 (DN#8,16) | 0.1 | 6.76 | 0.367 | keep | Higher gate ≈ same as B3 — model learns gate value regardless of init |
 | B6 | 2/18 controller (DN#8,16) | 0.9 | 6.75 | 0.364 | **INVALID** | Hooks were broken — this was LoRA-only |
-| **B7** | **2/18 replacement (DN#8,16) FIXED** | **0.05** | **7.17** | **0.249** | **real** | **First real ESN result on these layers. ESN hurts vs LoRA-only** |
+| B7 | 2/18 replacement (DN#8,16) FIXED | 0.05 | 7.17 | 0.249 | real | First real ESN result. Replacement hurts — ppl +5.1% |
+| **B8** | **2/18 controller (DN#8,16) FIXED** | **0.9** | **6.93** | **0.340** | **real** | **Controller < replacement damage. ppl +1.6%, under threshold. Still worse than LoRA-only** |
 
 **CRITICAL BUG FOUND:** B2-B6 had a bug where `DeltaNetReplacementManager` computed its own layer indices from `replace_every_nth` instead of using the `--replace_layers` argument. Hooks never fired — those results were LoRA-only baselines. B1 (which used `replace_every_nth=3` without `--replace_layers`) was the only experiment where hooks actually worked. B7 is the first fixed result.
 
@@ -157,7 +158,12 @@ output = gate * esn_projection(reservoir_states) + (1 - gate) * original_deltane
 5. **Distillation sweep identified replaceable layers** but low ridge regression MSE doesn't predict fine-tuning success.
 6. **The forgetting hypothesis remains untested.** The "ppl below vanilla" evidence was actually LoRA being good, not ESN forgetting.
 
-**What we actually know:** LoRA + 30% memory tasks is a strong recipe. ESN replacement at any scale hurts vs LoRA-only. The forgetting controller (Phase 3) needs to be rerun with the bug fix to get a real test.
+**What we actually know:**
+- **LoRA + 30% memory tasks is a strong recipe** — avg_em≈0.365, ppl≈6.75 without any reservoir.
+- **ESN replacement hurts** (B7: ppl +5.1%, avg_em -32% vs LoRA-only).
+- **ESN controller hurts less** (B8: ppl +1.6%, avg_em -7% vs LoRA-only) — multiplicative gating is less destructive than content replacement.
+- **Neither Track B approach beats LoRA-only.** The ESN state at these layers doesn't carry useful information — it's noise that degrades performance.
+- **Track A (sidecar at full-attention layers) remains the best ESN integration** — but needs proper ablation against LoRA-only to confirm the reservoir's contribution.
 
 ## Research Plan
 
@@ -177,9 +183,9 @@ Ran ridge regression (ESN r=1000 → DeltaNet output) for all 18 layers. Key fin
 
 **Pattern:** Early layers (0-5) are hardest — foundational token processing. Mid/late layers (9-13, 20-21) are easiest. Raw MSE grows with depth (larger activations) but relative MSE shows mid-layers are best match.
 
-### Phase 2: Single/Multi-Layer Replacement (COMPLETE — B3 is best)
+### Phase 2: Layer Replacement (COMPLETE — negative result)
 
-Replaced easiest layers guided by Phase 1. B2 (1 layer) and B3 (2 layers) both beat Track A. B4 (3 layers) crossed ppl threshold. B5 showed gate_init is irrelevant. Plateau reached at ~0.368 avg_em.
+B2-B6 had broken hooks (LoRA-only). B7 (fixed, replacement) hurts: ppl=7.17, avg_em=0.249. ESN content degrades DeltaNet output.
 
 ### Phase 3: ESN as Forgetting Controller (NEXT)
 
