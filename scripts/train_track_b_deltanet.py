@@ -252,13 +252,13 @@ class ESNForgettingController(nn.Module):
         self.reservoir_dim = reservoir_dim
 
         # Project ESN states → per-element relevance signal
+        # No LayerNorm here — it would zero out the bias and break the gate_init
         self.relevance_proj = nn.Linear(reservoir_dim, hidden_dim)
-        self.relevance_norm = nn.LayerNorm(hidden_dim)
 
-        # Initialize bias so sigmoid output ≈ gate_init (start near identity)
+        # Initialize bias so sigmoid(bias) ≈ gate_init (start near identity)
+        # Small weights so ESN signal starts as perturbation on keep-most-things default
         gate_bias_init = math.log(gate_init / (1.0 - gate_init + 1e-6))
         nn.init.constant_(self.relevance_proj.bias, gate_bias_init)
-        # Small weights so initial relevance is mostly uniform
         nn.init.normal_(self.relevance_proj.weight, std=0.01)
 
     def forward(
@@ -294,9 +294,8 @@ class ESNForgettingController(nn.Module):
             return deltanet_output
 
         # Compute relevance signal from ESN state
-        relevance = torch.sigmoid(
-            self.relevance_norm(self.relevance_proj(r))
-        )  # (B, T, H) ∈ [0, 1]
+        # sigmoid(W·r + bias) where bias≈2.2 gives ~0.9, W·r is small perturbation
+        relevance = torch.sigmoid(self.relevance_proj(r))  # (B, T, H) ∈ [0, 1]
 
         # Multiplicative gating: modulate what DeltaNet retains
         return deltanet_output * relevance
