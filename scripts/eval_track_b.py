@@ -336,6 +336,7 @@ def main() -> None:
             replacement_interfaces=replacement_interfaces,
             replace_every_nth=replace_every_nth,
             num_deltanet_blocks=num_dn,
+            selected_indices=selected_dn_indices,
         )
         replacement_manager.register_hooks(transformer_layers)
     else:

@@ -369,6 +369,7 @@ class DeltaNetReplacementManager:
         replacement_interfaces: nn.ModuleDict,
         replace_every_nth: int,
         num_deltanet_blocks: int,
+        selected_indices: list[int] | None = None,
     ) -> None:
         self.model = model
         self.replacement_interfaces = replacement_interfaces
@@ -377,9 +378,12 @@ class DeltaNetReplacementManager:
         self._reservoir_states: np.ndarray | None = None
         self._pre_hidden_store: dict[str, torch.Tensor] = {}
 
-        self._selected_block_indices: list[int] = list(
-            range(0, num_deltanet_blocks, replace_every_nth)
-        )
+        if selected_indices is not None:
+            self._selected_block_indices = selected_indices
+        else:
+            self._selected_block_indices = list(
+                range(0, num_deltanet_blocks, replace_every_nth)
+            )
         logger.info("DeltaNet replacement target indices: %s", self._selected_block_indices)
 
     def register_hooks(self, transformer_layers: list[nn.Module]) -> None:
@@ -591,6 +595,7 @@ def train(args: argparse.Namespace) -> None:
         replacement_interfaces=replacement_interfaces,
         replace_every_nth=n_step,
         num_deltanet_blocks=num_dn,
+        selected_indices=selected_dn_indices,
     )
     replacement_manager.register_hooks(transformer_layers)
 
