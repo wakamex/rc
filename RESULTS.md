@@ -199,11 +199,23 @@ Track A works. Track B is negative. The publishable story is now: **where and ho
 
 ## Planned Scaling Curves
 
-### 1. Second Base Model — LLaMA-3.2-1B (~5h)
-Highest priority. Tests whether the GatedLinearSidecar recipe is architecture-general or Qwen-specific. LLaMA has no recurrent layers → if it benefits more, external recurrent memory fills a bigger gap.
+### 1. Second Base Model — LLaMA-3.2-1B (~5h) — BLOCKED
+Highest priority but **blocked**: `meta-llama/Llama-3.2-1B` is a gated repo on HuggingFace. Needs access approval. Tests whether the GatedLinearSidecar recipe is architecture-general or Qwen-specific. LLaMA has no recurrent layers → if it benefits more, external recurrent memory fills a bigger gap.
 
-### 2. Reservoir Size — r=64 to 4096 (~10h, 7 runs)
-Full capacity curve. Theory (Jaeger/Dambre) predicts performance peaks at a critical r then degrades when the projection can't compress the state. We have r=1000 (good) and r=10000 (too noisy). Need the full picture.
+### 2. Reservoir Size — r=64 to 4096 (~10h, 7 runs) — IN PROGRESS
+
+Full capacity curve. Theory (Jaeger/Dambre) predicts performance peaks at a critical r then degrades when the projection can't compress the state. We have r=1000 (good) and r=10000 (too noisy).
+
+| r | ppl | avg_em | Status |
+|---|-----|--------|--------|
+| 64 | | | training |
+| 128 | | | queued |
+| 256 | | | queued |
+| 512 | | | queued |
+| 1000 | 6.84 | 0.357 | **Track A incumbent** |
+| 2000 | | | queued |
+| 4096 | | | queued |
+| 10000 | 7.72 | — | too noisy (Track A early result) |
 
 ### 3. Layer Count — 1 to 6 layers (~9h, 6 runs)
 Marginal return per additional sidecar layer. Current best is 5 layers [3,7,11,15,23]. Look for knee (phase transition) vs concave (diminishing returns).
