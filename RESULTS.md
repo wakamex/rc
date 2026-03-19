@@ -162,7 +162,7 @@ output = gate * esn_projection(reservoir_states) + (1 - gate) * original_deltane
 
 **What we actually know:**
 - **LoRA + 30% memory tasks is a strong recipe** — avg_em≈0.365, ppl≈6.75 without any reservoir.
-- **Track A (sidecar at full-attention layers [3,7,11,15,23]) is the only ESN integration that helps.** avg_em=0.357, ppl=6.84 — but needs proper ablation against LoRA-only to confirm the reservoir's contribution vs the training recipe alone.
+- **Track A (sidecar at full-attention layers [3,7,11,15,23]) is the only ESN integration that helps.** avg_em=0.357, ppl=6.84. The LoRA-only ablation (gates frozen at 0, same training) was already done during Track A experiments — LoRA-only gives modarith=0.02 vs reservoir 0.14-0.20 (7-10x). Track A's hook path (`SidecarHookManager`) is completely independent of the Track B bug (`DeltaNetReplacementManager`). The reservoir's contribution to Track A is confirmed.
 - **ESN at DeltaNet layers doesn't work** — neither as content (replacement) nor as signal (controller). The DeltaNet recurrence and ESN recurrence serve fundamentally different purposes that don't compose well.
 
 ## Research Plan
