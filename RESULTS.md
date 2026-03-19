@@ -112,7 +112,8 @@ output = gate * esn_projection(reservoir_states) + (1 - gate) * original_deltane
 | B5 | 2/18 (DN#8,16) | 0.1 | 6.76 | 0.367 | keep | Higher gate ≈ same as B3 — model learns gate value regardless of init |
 | B6 | 2/18 controller (DN#8,16) | 0.9 | 6.75 | 0.364 | **INVALID** | Hooks were broken — this was LoRA-only |
 | B7 | 2/18 replacement (DN#8,16) FIXED | 0.05 | 7.17 | 0.249 | real | First real ESN result. Replacement hurts — ppl +5.1% |
-| **B8** | **2/18 controller (DN#8,16) FIXED** | **0.9** | **6.93** | **0.340** | **real** | **Controller < replacement damage. ppl +1.6%, under threshold. Still worse than LoRA-only** |
+| B8 | 2/18 controller (DN#8,16) FIXED | 0.9 | 6.93 | 0.340 | real | Controller < replacement damage. ppl +1.6%. Still worse than LoRA-only |
+| **B9** | **1/18 controller (DN#10) r=256 FIXED** | **0.9** | **6.82** | **0.348** | **real** | **Zero ppl cost. Sweep-optimal layer + smaller reservoir. Still -5% vs LoRA-only on tasks** |
 
 **CRITICAL BUG FOUND:** B2-B6 had a bug where `DeltaNetReplacementManager` computed its own layer indices from `replace_every_nth` instead of using the `--replace_layers` argument. Hooks never fired — those results were LoRA-only baselines. B1 (which used `replace_every_nth=3` without `--replace_layers`) was the only experiment where hooks actually worked. B7 is the first fixed result.
 
