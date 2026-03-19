@@ -162,8 +162,12 @@ output = gate * esn_projection(reservoir_states) + (1 - gate) * original_deltane
 - **LoRA + 30% memory tasks is a strong recipe** — avg_em≈0.365, ppl≈6.75 without any reservoir.
 - **ESN replacement hurts** (B7: ppl +5.1%, avg_em -32% vs LoRA-only).
 - **ESN controller hurts less** (B8: ppl +1.6%, avg_em -7% vs LoRA-only) — multiplicative gating is less destructive than content replacement.
-- **Neither Track B approach beats LoRA-only.** The ESN state at these layers doesn't carry useful information — it's noise that degrades performance.
-- **Track A (sidecar at full-attention layers) remains the best ESN integration** — but needs proper ablation against LoRA-only to confirm the reservoir's contribution.
+- **Controller sweep (r=256) shows ALL 17/18 layers improve ppl below vanilla AND below LoRA-only.**
+  - Best: DN#10 (layer 13) → ppl=6.59 (-0.23 vs vanilla, -0.16 vs LoRA-only)
+  - Hooks confirmed (1000/run). This is with r=256 at 1000 steps — needs full 5000-step training + task eval.
+  - The smaller reservoir (256 vs 1000) produces a cleaner gating signal, as predicted.
+  - The optimal controller layer (DN#10=layer 13, mid-network) differs from the optimal replacement layer (DN#8=layer 10).
+- **Track A (sidecar at full-attention layers) remains the best task-eval'd ESN integration** — but controller sweep suggests Phase 3 may surpass it.
 
 ## Research Plan
 
