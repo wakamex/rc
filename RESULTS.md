@@ -153,22 +153,17 @@ output = gate * esn_projection(reservoir_states) + (1 - gate) * original_deltane
 ## Track B Conclusions
 
 1. **B2-B6 were invalid** — hooks never fired due to `DeltaNetReplacementManager` bug. Those results were LoRA-only baselines.
-2. **LoRA + memory tasks alone gives avg_em≈0.365, ppl≈6.75.** This is a strong baseline — LoRA adapts to synthetic memory tasks effectively.
-3. **Real ESN replacement (B7, 2 layers) hurts.** ppl=7.17 (+5.1%), avg_em=0.249. The ESN disrupts DeltaNet's learned representations.
-4. **B1 (6 layers, hooks active) was genuinely destructive** — ppl=13.76 (+101%). This was correctly measured.
-5. **Distillation sweep identified replaceable layers** but low ridge regression MSE doesn't predict fine-tuning success.
-6. **The forgetting hypothesis remains untested.** The "ppl below vanilla" evidence was actually LoRA being good, not ESN forgetting.
+2. **LoRA + memory tasks alone gives avg_em≈0.365, ppl≈6.75.** This is a strong baseline most reservoir papers would miss.
+3. **Real ESN replacement hurts** (B7: ppl +5.1%, avg_em -32% vs LoRA-only). The ESN disrupts DeltaNet's learned representations.
+4. **ESN controller is less destructive but still net-negative.** B8 (r=1000): ppl +1.6%, avg_em -7%. B9 (r=256, sweep-optimal layer): ppl=vanilla, avg_em -5%. Neither beats LoRA-only.
+5. **Controller sweep signal didn't survive full training.** At 1000 steps, sweep showed -0.09 ppl vs LoRA-only. At 5000 steps (B9), the delta vanished — the 1000-step signal was noise from undertrained LoRA, not a real controller effect.
+6. **The forgetting hypothesis is not supported.** Three integration strategies tested (replacement, controller r=1000, controller r=256). None beat LoRA-only. The ESN state at DeltaNet layers doesn't carry useful information for either content or gating.
+7. **Track B is a negative result.** Publishable and honest — "we tried three integration strategies at DeltaNet layers, augmentation at full-attention layers (Track A) works, replacement/controller at DeltaNet layers doesn't."
 
 **What we actually know:**
 - **LoRA + 30% memory tasks is a strong recipe** — avg_em≈0.365, ppl≈6.75 without any reservoir.
-- **ESN replacement hurts** (B7: ppl +5.1%, avg_em -32% vs LoRA-only).
-- **ESN controller hurts less** (B8: ppl +1.6%, avg_em -7% vs LoRA-only) — multiplicative gating is less destructive than content replacement.
-- **Controller sweep (r=256) shows ALL 17/18 layers improve ppl below vanilla AND below LoRA-only.**
-  - Best: DN#10 (layer 13) → ppl=6.59 (-0.23 vs vanilla, -0.16 vs LoRA-only)
-  - Hooks confirmed (1000/run). This is with r=256 at 1000 steps — needs full 5000-step training + task eval.
-  - The smaller reservoir (256 vs 1000) produces a cleaner gating signal, as predicted.
-  - The optimal controller layer (DN#10=layer 13, mid-network) differs from the optimal replacement layer (DN#8=layer 10).
-- **Track A (sidecar at full-attention layers) remains the best task-eval'd ESN integration** — but controller sweep suggests Phase 3 may surpass it.
+- **Track A (sidecar at full-attention layers [3,7,11,15,23]) is the only ESN integration that helps.** avg_em=0.357, ppl=6.84 — but needs proper ablation against LoRA-only to confirm the reservoir's contribution vs the training recipe alone.
+- **ESN at DeltaNet layers doesn't work** — neither as content (replacement) nor as signal (controller). The DeltaNet recurrence and ESN recurrence serve fundamentally different purposes that don't compose well.
 
 ## Research Plan
 
