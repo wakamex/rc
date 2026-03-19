@@ -202,20 +202,26 @@ Track A works. Track B is negative. The publishable story is now: **where and ho
 ### 1. Second Base Model — LLaMA-3.2-1B (~5h) — BLOCKED
 Highest priority but **blocked**: `meta-llama/Llama-3.2-1B` is a gated repo on HuggingFace. Needs access approval. Tests whether the GatedLinearSidecar recipe is architecture-general or Qwen-specific. LLaMA has no recurrent layers → if it benefits more, external recurrent memory fills a bigger gap.
 
-### 2. Reservoir Size — r=64 to 4096 (~10h, 7 runs) — IN PROGRESS
+### 2. Reservoir Size — r=64 to 4096 — COMPLETE
 
-Full capacity curve. Theory (Jaeger/Dambre) predicts performance peaks at a critical r then degrades when the projection can't compress the state. We have r=1000 (good) and r=10000 (too noisy).
+Clean capacity curve. avg_em peaks at r=256, ppl minimizes at r=512. Both degrade for r≥1000.
 
-| r | ppl | avg_em | Status |
-|---|-----|--------|--------|
-| 64 | | | training |
-| 128 | | | queued |
-| 256 | | | queued |
-| 512 | | | queued |
-| 1000 | 6.84 | 0.357 | **Track A incumbent** |
-| 2000 | | | queued |
-| 4096 | | | queued |
-| 10000 | 7.72 | — | too noisy (Track A early result) |
+| r | ppl | Δppl | avg_em |
+|---|-----|------|--------|
+| 64 | 6.95 | +1.9% | 0.347 |
+| 128 | 6.85 | +0.4% | 0.350 |
+| **256** | **6.75** | **-1.0%** | **0.368** |
+| 512 | **6.62** | **-2.9%** | 0.365 |
+| 1000 | 6.84 | +0.3% | 0.357 |
+| 2000 | 6.87 | +0.7% | 0.355 |
+| 4096 | 6.88 | +0.9% | 0.355 |
+| 10000 | 7.72 | +13.2% | — |
+
+**Findings:**
+- r=256 is the new optimal for task performance (avg_em=0.368, +3% over r=1000)
+- r=512 gives the best perplexity (6.62, -2.9% vs vanilla) but slightly lower tasks
+- Curve matches Dambre capacity theory: performance improves with r until projection can't compress the state, then signal-to-noise ratio degrades
+- Original Track A choice of r=1000 was past the optimum
 
 ### 3. Layer Count — 1 to 6 layers (~9h, 6 runs)
 Marginal return per additional sidecar layer. Current best is 5 layers [3,7,11,15,23]. Look for knee (phase transition) vs concave (diminishing returns).
