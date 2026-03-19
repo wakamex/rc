@@ -1,153 +1,139 @@
-# Track B Experiment Loop
+# Track A Scaling Experiments
 
-Autonomous experimentation loop for Track B: integrating ESN reservoirs with Qwen3.5-0.8B's native DeltaNet layers.
+Track B is complete (negative result). The project now focuses on characterizing Track A's scaling behavior to build a publishable story: "where and how auxiliary recurrent memory helps transformers."
 
 ## Objective
 
-**Maximize `avg_em` while keeping `ppl < 7.0` (< +2% over vanilla 6.82).**
+**Produce four scaling curves** showing ESN sidecar performance as a function of:
+1. Reservoir size (capacity)
+2. Layer count (injection depth)
+3. Sequence length (context dependence)
+4. Base model (architecture generality)
 
-```
-avg_em = mean of all 23 benchmark exact-match scores
-ppl    = perplexity on 5 standard texts (vanilla baseline: 6.82)
-```
-
-- Higher avg_em is better
-- ppl must stay below 7.0 (Gate B criterion: <2% degradation)
-- Track A incumbent: avg_em=0.357, ppl=6.84
+Target figure: four panels, each with ppl and avg_em curves, error bars, clean axes. Caption: "ESN sidecar performance scales predictably with reservoir capacity, injection depth, context length, and model size."
 
 ## Context
 
-Read these files for full context before your first experiment:
-
-- `RESULTS.md` — Track A final results + Track B experiment log
-- `scripts/train_track_b_deltanet.py` — Track B training script (DeltaNet replacement + ESN)
-- `scripts/eval_track_b.py` — Track B eval script (full 23-benchmark suite)
-- `src/reservoir/interface.py` — sidecar architectures (reference)
-- `src/reservoir/deltanet_replace.py` — DeltaNet replacement module
-- `docs/gate_a_report.md` — Track A final assessment (what worked, what didn't)
-
-Do NOT read `DIARY.md` — it's a chronological log. `RESULTS.md` has everything you need.
+- `RESULTS.md` — Track A results (incumbent), Track B results (negative)
+- `scripts/train_track_a_readonly.py` — Track A training script
+- `scripts/sprint_eval.py` — 3-task sprint eval
+- `scripts/eval_track_a.py` — full 23-benchmark eval
+- `src/reservoir/interface.py` — GatedLinearSidecar architecture
+- `docs/gate_a_report.md` — Track A assessment (4/5 gates passed)
 
 ## Workflow
 
-Work directly on `main`. Push commits directly — no side branches.
+Work directly on `main`. Push commits directly.
 
-| Commit prefix | Checkpoint dir                |
-|---------------|-------------------------------|
-| `CLAUDE:`     | `checkpoints/track_b/deltanet` |
+| Commit prefix | Checkpoint dir |
+|---------------|----------------|
+| `CLAUDE:` | `checkpoints/scaling/` |
 
-Only one agent trains at a time (single GPU, 24GB).
+## Current Track A Baseline
 
-## Track B Architecture
+- **Architecture:** GatedLinearSidecar at layers [3,7,11,15,23], ESN r=1000
+- **Results:** avg_em=0.357, ppl=6.84
+- **LoRA-only ablation:** modarith=0.02 vs reservoir 0.14-0.20 (7-10x). Reservoir confirmed to help.
 
-Qwen3.5-0.8B has a **hybrid architecture**: 18 DeltaNet (linear attention) + 6 full-attention layers in a 3:1 pattern.
+## Scaling Experiments (ordered by impact per compute-hour)
 
-**DeltaNet layer indices:** 0,1,2, 4,5,6, 8,9,10, 12,13,14, 16,17,18, 20,21,22
-**Full-attention indices:** 3, 7, 11, 15, 19, 23
+### 1. Second Base Model — LLaMA-3.2-1B (~5h)
 
-## Research Plan (Three Phases)
+**Why highest priority:** If the same recipe works on a pure transformer (no DeltaNet), it proves the approach isn't Qwen-specific. If it works *better* (LLaMA has no recurrent layers → more benefit from external recurrent memory), that's a scaling argument. If it fails, the DeltaNet layers are enabling the sidecar — changes the mechanistic story.
 
-### Phase 1: Distillation Sweep — COMPLETE
+**Method:**
+- Load LLaMA-3.2-1B via `load_model("llama-3.2-1b")`
+- Same GatedLinearSidecar at equivalent layer positions
+- Same training recipe: 5000 steps, 30% memory tasks, gate_warmup=0.1
+- Full 23-benchmark eval
 
-Script: `scripts/distill_sweep.py`. Ridge regression ESN→DeltaNet output for all 18 layers.
-Result: Layer 10 easiest (rel_mse=0.177), early layers hardest. See RESULTS.md for full table.
+**Key question:** Does the ESN help transformers generally, or only Qwen's hybrid architecture?
 
-### Phase 2: Layer Replacement — COMPLETE (B3 is best)
+### 2. Reservoir Size Scaling (~10h, 7 runs)
 
-B2 (1 layer) and B3 (2 layers) both beat Track A. B4 (3 layers) crossed ppl threshold. B5 showed gate_init irrelevant. **Plateau at ~0.368 avg_em with 2 layers.**
+**Sizes:** r = 64, 128, 256, 512, 1000, 2000, 4096
 
-### Phase 3: ESN as Forgetting Controller — NEXT
+**Theory:** Jaeger/Dambre capacity curve predicts performance improves with r up to a critical point where the gating projection can't usefully compress the reservoir state, then degrades. We have two data points (r=1000 works, r=10000 too noisy). Need the full curve.
 
-**Goal:** Don't replace DeltaNet. Keep it intact, run ESN in parallel. Use ESN state to *modulate* DeltaNet's output — the reservoir tells the LLM what's worth keeping.
+**Method:** For each r, train 5000 steps with standard recipe, run full eval.
 
-**Core hypothesis:** A reservoir near the edge of chaos naturally performs relevance filtering. Inputs that perturb reservoir state persistently are dynamically important (keep). Inputs that decay are forgettable. This is a byproduct of the dynamics — it's free.
+**What to plot:** ppl and avg_em vs log(r). Expect concave curve with peak near r=512-1000.
 
-**The theoretical basis (Takens/Dambre):**
-- Takens' theorem: ESN state is an implicit nonlinear delay embedding — it reconstructs the input stream's dynamical structure without choosing τ or embedding dimension
-- Dambre decomposition: reservoir tracks both linear memory (what happened) and nonlinear interactions (what patterns are forming across time)
-- This isn't recency-based like FIFO — a memory from 500 steps ago that's part of an ongoing pattern stays important, while a recent isolated input can be forgotten
-- The reservoir computes a continuous, implicit importance score for every piece of information, for free
+### 3. Layer Count and Position (~9h, 6 runs)
 
-**How it differs from Track A and Phase 2:**
-- Track A: ESN state *added* to residual stream (additive injection, memory store)
-- Phase 2: ESN output *replaces* DeltaNet output (substitution)
-- **Phase 3: ESN state *modulates* DeltaNet output (multiplicative gating, memory controller)**
-- Attention asks "what's relevant to the current query?" — reactive, pairwise
-- Reservoir gating asks "what's dynamically alive?" — proactive, holistic, no query needed
+**Configs:** 1, 2, 3, 4, 5, 6 sidecar layers, each at optimal positions.
 
-**Implementation (~200 lines):**
-```
-deltanet_output = DeltaNet(hidden_states)        # original, untouched
-esn_state = ESN.step(hidden_states)              # parallel reservoir
-relevance = sigmoid(linear(esn_state))           # importance signal ∈ [0,1]
-output = deltanet_output * relevance             # gate what DeltaNet retains
-```
+We know:
+- 5 layers [3,7,11,15,23] is current best
+- Removing any single layer kills performance (exp44, exp45)
 
-Hook into DeltaNet layers' forward pass. Can reuse the existing `DeltaNetReplacementManager` hook infrastructure, just change the mixing formula from `gate * esn + (1-gate) * deltanet` to `deltanet * relevance_from_esn`.
+Need the build-up curve: what's the marginal return per additional layer?
 
-**Spectral radius sweep is critical:**
-- Run at multiple spectral radii (0.8, 0.9, 0.95, 0.99, 1.0)
-- The optimal radius for downstream performance may differ from the optimal for distillation
-- If the forgetting-controller hypothesis is right, the ESN might beat DeltaNet by forgetting things DeltaNet wastefully retains
+**Method:** For each count, pick best positions (start with the most important layers), train, eval.
 
-**Predictions:**
-- Short context tasks (< 1k tokens): expect parity with vanilla
-- Long context, mostly relevant info: expect parity
-- Long context, high noise/distractor ratio: ESN gating should win
-- Gap should widen as memory demands increase
+**Suggested progression:**
+- 1 layer: [11] (middle)
+- 2 layers: [7, 19]
+- 3 layers: [3, 11, 23]
+- 4 layers: [3, 7, 15, 23]
+- 5 layers: [3, 7, 11, 15, 23] (current best)
+- 6 layers: [3, 7, 11, 15, 19, 23]
 
-### Future: AttnRes-style Fusion
+**What to plot:** ppl and avg_em vs layer count. Look for knee (phase transition) vs concave (diminishing returns).
 
-Instead of fixed injection points or per-layer gating, make the ESN state an additional "source" in depth-wise attention (inspired by AttnRes paper). Each layer learns to attend over both previous-layer outputs AND ESN state. Subsumes all approaches but requires deeper architectural changes.
+### 4. Sequence Length Scaling (~8h, 4 runs)
+
+**Lengths:** 512, 1024, 2048, 4096
+
+**Theory:** The reservoir's advantage is persistent memory beyond attention's effective window. If the sidecar's benefit increases with sequence length, the reservoir provides something attention fundamentally can't.
+
+**Method:** Train at each seq length (adjust batch/accum for VRAM), eval at same length.
+
+**What to plot:** ppl ratio (sidecar/vanilla) and avg_em delta vs sequence length. Downward-sloping ratio = reservoir helps more at longer contexts.
+
+### 5. Model Size (optional, needs cloud)
+
+If access to Qwen3.5-2B or 3B is possible, even one run showing the sidecar helps at larger scale is worth it. Reviewers will ask "does this scale?"
+
+## What NOT to spend time on
+
+- Topology experiments (Watts-Strogatz vs Erdős-Rényi) — unlikely to matter for scaling story
+- More training recipe tuning — 5000 steps and 30% memory ratio are fine
+- Multi-reservoir fast/slow setup — Track B showed forgetting angle doesn't work
+- Track B follow-ups — it's a negative result, document it and move on
 
 ## The Experiment Loop
 
-**Budget: 5000 training steps (~90 min) + full eval (~30 min) = ~2 hours total.**
+**Budget: 5000 steps (~90 min training) + eval (~30 min) = ~2h per config.**
 
-LOOP FOREVER:
-
-1. **Hypothesis:** Write one sentence about what you're testing and why.
-2. **Modify code:** Make the change (architecture, hyperparams, etc.).
-3. **Train:**
+1. **Train:**
    ```bash
-   PYTORCH_ALLOC_CONF=expandable_segments:True python scripts/train_track_b_deltanet.py \
+   PYTORCH_ALLOC_CONF=expandable_segments:True python scripts/train_track_a_readonly.py \
      --no_wandb --max_steps 5000 --batch_size 1 --grad_accum 16 \
-     --memory_task_ratio 0.3 --warmup_steps 100 --gate_warmup_steps 10 --gate_warmup_target 0.1 \
-     --output_dir checkpoints/track_b/deltanet --save_interval 9999 \
-     --log_interval 100 > run_track_b.log 2>&1
+     --memory_task_ratio 0.3 --warmup_steps 15 --gate_warmup_steps 10 --gate_warmup_target 0.1 \
+     --output_dir checkpoints/scaling/<experiment_name> --save_interval 9999 \
+     --log_interval 100 > run.log 2>&1
    ```
-   Adjust args as needed. Redirect output — do NOT flood context.
-4. **Eval:**
-   ```bash
-   python scripts/eval_track_b.py --checkpoint checkpoints/track_b/deltanet/final \
-     --n-examples 50 --output results/track_b/eval_deltanet.json > eval_track_b.log 2>&1
-   ```
-5. **Extract:** `tail -30 eval_track_b.log` for the comparison table.
-6. **Log:** Update RESULTS.md Track B experiment table.
-7. **Commit:** Include results in the commit message.
-8. **Preserve best:** If this is the new best, copy checkpoint to `checkpoints/track_b/best/`.
-9. **Repeat.**
-
-If a run crashes, fix the bug and retry once. If the idea is fundamentally broken, log it and move on.
-
-**Timeout:** If training exceeds 120 minutes, kill it and treat as failure.
+2. **Eval:** `python scripts/eval_track_a.py --checkpoint checkpoints/scaling/<experiment_name>/final`
+3. **Log:** Update RESULTS.md scaling tables.
+4. **Commit:** Include results in message.
+5. **Preserve best:** Copy to `checkpoints/scaling/best/` if new best.
 
 ## Key Constraints
 
-- **VRAM:** 24 GB (RTX 3090). batch_size=1 + grad_accum=16 is the safe default.
-- **Gradient checkpointing is broken** with forward hooks — do not enable it.
-- **PYTORCH_ALLOC_CONF=expandable_segments:True** required for all training runs.
-- **5000 steps is the baseline.** Track A found this is the sweet spot. Can try shorter (3000) for quick screening.
-- Gates need warmup — without it they never open.
-- **Generation fix:** During autoregressive generation, ESN mixing is skipped when seq lengths don't match (KV-cache processes 1 token at a time but reservoir states cover full prompt). This is correct — no new reservoir info for generated tokens.
+- **VRAM:** 24 GB (RTX 3090). batch_size=1 + grad_accum=16 is safe default.
+- **Gradient checkpointing is broken** with sidecar hooks.
+- **PYTORCH_ALLOC_CONF=expandable_segments:True** required.
+- **5000 steps baseline.** Only deviate for the sequence length experiment.
 
-## Gate B Success Criteria
+## Compute Budget
 
-From COLLABORATIVE_PROPOSAL.md:
-1. ≥20% exact-match gain on long program-trace tasks
-2. Better memory-quality-per-byte than RoPE/YaRN-only context extension
-3. <2% perplexity degradation (ppl < 6.96)
+| Experiment | Runs | Time/run | Total |
+|-----------|------|----------|-------|
+| LLaMA-3.2-1B | 1 | ~5h | ~5h |
+| Reservoir size sweep | 7 | ~1.5h | ~10h |
+| Layer count sweep | 6 | ~1.5h | ~9h |
+| Sequence length sweep | 4 | ~2h | ~8h |
+| **Total** | **18** | | **~32h** |
 
-## NEVER STOP
-
-Once the loop begins, do NOT pause to ask if you should continue. Run experiments autonomously until manually interrupted. If you run out of ideas, re-read `RESULTS.md` for new angles. Try combining near-misses. Try more radical changes. The loop runs until the human stops you.
+One weekend on the 3090. All local, no cloud needed except optional model size scaling.

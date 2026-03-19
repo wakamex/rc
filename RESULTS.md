@@ -185,52 +185,37 @@ Ran ridge regression (ESN r=1000 → DeltaNet output) for all 18 layers. Key fin
 
 ### Phase 2: Layer Replacement (COMPLETE — negative result)
 
-B2-B6 had broken hooks (LoRA-only). B7 (fixed, replacement) hurts: ppl=7.17, avg_em=0.249. ESN content degrades DeltaNet output.
+B2-B6 had broken hooks (LoRA-only). B7 (fixed, replacement) hurts: ppl=7.17, avg_em=0.249.
 
-### Phase 3: ESN as Forgetting Controller (NEXT)
+### Phase 3: Forgetting Controller (COMPLETE — negative result)
 
-**Core hypothesis:** The reservoir's value is not as a memory store but as a memory *controller*. Instead of replacing DeltaNet or adding information to the residual stream, use the ESN to tell DeltaNet what's worth keeping.
+Tested multiplicative gating (`deltanet_output * σ(W·esn_state)`) instead of content replacement. B8 (r=1000, 2 layers): ppl=6.93, avg_em=0.340. B9 (r=256, sweep-optimal layer): ppl=6.82, avg_em=0.348. Less destructive than replacement but neither beats LoRA-only. Controller sweep at 1000 steps showed signal that vanished at 5000 steps — was noise from undertrained LoRA.
 
-**Why this is different from Track A and Phase 2:**
-- Track A (sidecar): ESN state *added* to residual stream — additive injection
-- Phase 2 (replacement): ESN output *replaces* DeltaNet output — substitution
-- Phase 3 (controller): ESN state *modulates* DeltaNet output — multiplicative gating
+---
 
-**How it works:**
-```
-deltanet_output = DeltaNet(hidden_states)        # original, untouched
-esn_state = ESN.step(hidden_states)              # parallel reservoir
-relevance = sigmoid(linear(esn_state))           # importance signal ∈ [0,1]
-output = deltanet_output * relevance             # gate what DeltaNet retains
-```
+# Scaling Experiments (NEXT)
 
-**Why the reservoir is well-suited for this (Takens/Dambre theory):**
-- ESN near edge of chaos naturally performs relevance filtering as a byproduct of its dynamics
-- Inputs that perturb the reservoir state persistently = dynamically important → keep
-- Inputs that decay quickly = dynamically irrelevant → forgettable
-- Dambre decomposition: reservoir tracks both linear memory (what happened) and nonlinear interactions (what patterns are forming) — not recency-based like FIFO
-- A memory from 500 steps ago that's part of an ongoing pattern stays important; a recent but isolated input can be forgotten
+Track A works. Track B is negative. The publishable story is now: **where and how does auxiliary recurrent memory help transformers, and how does it scale?**
 
-**What makes this different from attention:**
-- Attention: "what's relevant to the current query?" — reactive, pairwise
-- Reservoir gating: "what's dynamically alive in the system's state?" — proactive, holistic, no query needed
+## Planned Scaling Curves
 
-**Predictions:**
-- Short context tasks (< 1k tokens): expect parity with vanilla
-- Long context, mostly relevant info: expect parity
-- Long context, high noise/distractor ratio: ESN gating should win
-- Gap should widen as memory demands increase
+### 1. Second Base Model — LLaMA-3.2-1B (~5h)
+Highest priority. Tests whether the GatedLinearSidecar recipe is architecture-general or Qwen-specific. LLaMA has no recurrent layers → if it benefits more, external recurrent memory fills a bigger gap.
 
-**Spectral radius sweep is critical:** optimal for downstream performance may differ from optimal for distillation — ESN might beat DeltaNet by forgetting things DeltaNet wastefully retains.
+### 2. Reservoir Size — r=64 to 4096 (~10h, 7 runs)
+Full capacity curve. Theory (Jaeger/Dambre) predicts performance peaks at a critical r then degrades when the projection can't compress the state. We have r=1000 (good) and r=10000 (too noisy). Need the full picture.
 
-**Implementation:** ~200 lines. Hook into DeltaNet layers, run ESN in parallel on same input, modulate DeltaNet output with learned gate driven by ESN state.
+### 3. Layer Count — 1 to 6 layers (~9h, 6 runs)
+Marginal return per additional sidecar layer. Current best is 5 layers [3,7,11,15,23]. Look for knee (phase transition) vs concave (diminishing returns).
 
-### Future: AttnRes-style Fusion
+### 4. Sequence Length — 512 to 4096 (~8h, 4 runs)
+Does the sidecar benefit increase with context? If yes → reservoir provides something attention fundamentally can't. If flat → reservoir is redundant with attention at these scales.
 
-Instead of fixed injection points (Track A) or replacement (Phase 2) or per-layer gating (Phase 3), make the ESN state an additional "source" in a depth-wise attention mechanism (inspired by AttnRes). Each layer learns to attend over both previous-layer outputs AND ESN state. This subsumes all three approaches but is a bigger architectural change.
+### 5. Model Size — optional, needs cloud
+Even one data point at Qwen3.5-2B showing the sidecar helps would answer the "does this scale?" reviewer question.
 
 ## Known Limitations
 
-- **Write-head feedback problem:** The ESN input projection has no gradient signal about what the reservoir dynamics actually do with the input. The model can learn to *read* the reservoir but can't *shape* what it computes. This may explain why hyperparameters like gate_init have limited effect (B3≈B5).
-- **No persistent state across forward calls:** The ESN resets per sequence. For replacement (Phase 2), this means the ESN is a per-sequence feature extractor, not a persistent memory across sequences.
-- **Code duplication:** 5+ near-duplicate training scripts. Should consolidate into a single parameterized training script.
+- **Write-head feedback problem:** The ESN input has no gradient signal about what the reservoir dynamics do with it. The model learns to *read* the reservoir but can't *shape* what it computes.
+- **No persistent state across sequences:** ESN resets per sequence. Within a sequence it accumulates state, but across sequences it starts fresh.
+- **Track B hook bug invalidated experiments B2-B6.** All fixed results (B7-B9) are negative. Track A hook path (`SidecarHookManager`) is confirmed independent and clean.
