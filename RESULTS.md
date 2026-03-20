@@ -243,8 +243,23 @@ All runs at r=256 (new optimal from sweep #2).
 - 2-layer [7,19] performs worse than 1-layer [11] on ppl — position matters more than count at low counts
 - ppl improves monotonically from 3→4 layers but task performance doesn't follow — ppl and tasks optimize differently
 
-### 4. Sequence Length — 512 to 4096 (~8h, 4 runs)
-Does the sidecar benefit increase with context? If yes → reservoir provides something attention fundamentally can't. If flat → reservoir is redundant with attention at these scales.
+### 4. Sequence Length — 512 to 4096 — COMPLETE (3 of 4 runs, seq4096 OOM)
+
+All runs at r=256, 5 layers [3,7,11,15,23]. seq4096 OOM on 24GB GPU.
+
+| seq_len | ppl | Δppl | avg_em |
+|---------|-----|------|--------|
+| 512 | 6.76 | -0.9% | 0.363 |
+| **1024** | **6.70** | **-1.8%** | **0.374** |
+| 2048 | 6.75 | -1.0% | 0.368 |
+| 4096 | — | — | OOM (24GB) |
+
+**Findings:**
+- seq1024 is the best overall (avg_em=0.374, new project-wide best)
+- The curve is NOT monotonically increasing with length — peaks at 1024
+- This argues AGAINST the "persistent memory beyond attention window" story
+- More likely: shorter sequences are more sample-efficient (same 5000 steps = more gradient updates per position), and 1024 is the sweet spot for this training budget
+- The sidecar benefit is roughly uniform across 512-2048, suggesting it augments attention at all scales rather than filling a specific length-dependent gap
 
 ### 5. Model Size — optional, needs cloud
 Even one data point at Qwen3.5-2B showing the sidecar helps would answer the "does this scale?" reviewer question.
