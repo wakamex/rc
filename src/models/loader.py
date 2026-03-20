@@ -22,6 +22,7 @@ from src.types import ModelWrapper as ModelWrapperProtocol  # noqa: F401 (import
 MODEL_REGISTRY: dict[str, str] = {
     "qwen3.5-0.8b": "Qwen/Qwen3.5-0.8B-Base",  # hybrid DeltaNet + full-attention
     "qwen3.5-2b": "Qwen/Qwen3.5-2B-Base",  # hybrid DeltaNet + full-attention (larger)
+    "qwen3.5-4b": "Qwen/Qwen3.5-4B-Base",  # hybrid DeltaNet + full-attention (4B)
     "llama-3.2-1b": "meta-llama/Llama-3.2-1B",  # pure softmax attention
     "mamba2-1.3b": "state-spaces/mamba2-1.3b-hf",  # SSM architecture
 }

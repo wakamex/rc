@@ -4,17 +4,13 @@ Track B is complete (negative result). The project now focuses on characterizing
 
 ## Current Status
 
-**Completed sweeps:** reservoir size (7 runs), layer count (6 runs), sequence length (3 runs + 1 OOM)
+**Completed sweeps (0.8B):** reservoir size (7 runs), layer count (6 runs), sequence length (3 runs), multi-seed (3 seeds), LLaMA-3.2-1B, Qwen3.5-2B, Qwen3.5-4B (training)
 
-**Best config found:** r=256, 5 layers [3,7,11,15,23], seq_len=1024 → avg_em=0.374, ppl=6.70
+**Best 0.8B config:** r=256, 5 layers [3,7,11,15,23], seq_len=1024 → avg_em=0.347±0.019, ppl=6.77±0.05
 
-**In progress:**
-- Multi-seed variance: best config at seeds 42 (done), 43 (training), 44 (queued)
-- LLaMA-3.2-1B: HF access approved, queued after seed runs
+**Current work:** 2B/4B hyperparameter sweeps to find optimal sidecar config at larger model sizes. The 0.8B-tuned hyperparameters (gate=0.1, r=256) cause +4% ppl at 2B — needs optimization.
 
-**Remaining:**
-- LLaMA-3.2-1B run (~5h) — tests architecture generality
-- Model size scaling (optional, needs cloud)
+**Active task queue:** See `TASKS.md` for the ordered run list. Work through it sequentially.
 
 ## Context
 
