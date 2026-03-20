@@ -299,8 +299,23 @@ Key task results (LLaMA):
 - Lower overall avg_em (0.244 vs 0.347) may reflect: LLaMA has 16 layers (4 sidecar points) vs Qwen's 24 (5 points), or task-specific differences between the base models
 - **This is the key generalization result for the paper**
 
-### 7. Model Size — optional, needs cloud
-Even one data point at Qwen3.5-2B showing the sidecar helps would answer the "does this scale?" reviewer question.
+### 7. Model Size Scaling — Qwen3.5-2B — COMPLETE (ran locally, fit on 24GB)
+
+| Model | Params | Vanilla ppl | Sidecar ppl | Δppl | Vanilla avg_em* | Sidecar avg_em |
+|-------|--------|------------|-------------|------|----------------|---------------|
+| Qwen3.5-0.8B | 0.8B | 6.82 | 6.77 | -0.7% | ~0.12 | 0.347 ± 0.019 |
+| LLaMA-3.2-1B | 1.2B | 5.82 | 5.76 | -1.0% | 0.209 | 0.244 |
+| **Qwen3.5-2B** | **2B** | **4.01** | **4.17** | **+4.0%** | **—** | **0.366** |
+
+*Qwen3.5-2B vanilla task eval not yet run
+
+**Findings:**
+- Sidecar works at 2B scale — avg_em=0.366 is the highest in the project
+- CompositionalGen: 0.26/0.16 (much better than 0.8B's ~0.06)
+- LengthExtrapolation 1x: 0.260 (0.8B got 0.10)
+- DyckLanguage: 0.040 (first non-zero ever)
+- **BUT ppl increases +4.0%** at 2B (vs -0.7% at 0.8B). Larger models are harder to augment without disrupting calibration
+- The task gains scale with model size but the ppl cost also scales — need to optimize gate/training for larger models
 
 ### 8. Passkey Retrieval Distance Sweep — COMPLETE
 
