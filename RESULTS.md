@@ -274,8 +274,29 @@ Best config (r=256, 5 layers, seq1024) at 3 seeds:
 
 Seed 42 was an outlier — the true avg_em is ~0.347, not 0.374. High variance at n=50 eval samples. The ppl result is more stable (6.77 ± 0.05, consistently below vanilla 6.82).
 
-### 6. Second Base Model — LLaMA-3.2-1B — IN PROGRESS
-Training now. Pure softmax transformer (no DeltaNet). Tests architecture generality.
+### 6. Second Base Model — LLaMA-3.2-1B — COMPLETE
+
+Pure softmax transformer (16 layers, hidden=2048, no DeltaNet). Sidecar at [3,7,11,15], r=256.
+
+| Metric | LLaMA + Sidecar | LLaMA Vanilla | Qwen + Sidecar (mean) | Qwen Vanilla |
+|--------|----------------|---------------|----------------------|-------------|
+| ppl | 5.76 | 5.82 | 6.77 | 6.82 |
+| Δppl | -1.0% | — | -0.7% | — |
+| avg_em | 0.244 | ~0.12 | 0.347 | ~0.12 |
+
+Key task results (LLaMA):
+- PasskeyRetrieval: 0.92-1.00 (near perfect, same as Qwen)
+- ModularArithmetic: 0.200 (better than Qwen's 0.14!)
+- VariableTracking: 0.46-0.56 (comparable to Qwen)
+- MultiDigitArith: 0.12-0.34 (lower than Qwen's 0.94)
+- ProgramTrace: 0.00 (failed — Qwen gets 0.28-0.38)
+
+**Findings:**
+- **The sidecar is architecture-general** — works on pure softmax transformer, not Qwen-specific
+- ppl improvement is slightly larger on LLaMA (-1.0% vs -0.7%) — pure attention models benefit at least as much
+- ModularArithmetic is *better* on LLaMA — the reservoir augments attention-only models effectively for some tasks
+- Lower overall avg_em (0.244 vs 0.347) may reflect: LLaMA has 16 layers (4 sidecar points) vs Qwen's 24 (5 points), or task-specific differences between the base models
+- **This is the key generalization result for the paper**
 
 ### 7. Model Size — optional, needs cloud
 Even one data point at Qwen3.5-2B showing the sidecar helps would answer the "does this scale?" reviewer question.

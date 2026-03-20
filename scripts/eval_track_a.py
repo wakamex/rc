@@ -244,6 +244,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--skip-chaos", action="store_true")
     p.add_argument("--no-sidecar", action="store_true",
                     help="Disable sidecar hooks (LoRA-only ablation)")
+    p.add_argument("--model-name", default="qwen3.5-0.8b",
+                    help="Base model name (e.g. qwen3.5-0.8b, llama-3.2-1b)")
     return p.parse_args()
 
 
@@ -260,8 +262,9 @@ def main() -> None:
     ckpt = Path(args.checkpoint)
 
     # --- Load base model ---
-    print(f"Loading Qwen3.5-0.8B-Base on {args.device} ({args.dtype})...")
-    wrapper = load_model("qwen3.5-0.8b", dtype=dtype, device=str(device))
+    model_name = getattr(args, 'model_name', 'qwen3.5-0.8b')
+    print(f"Loading {model_name} on {args.device} ({args.dtype})...")
+    wrapper = load_model(model_name, dtype=dtype, device=str(device))
     model = wrapper.model
     tokenizer = wrapper.tokenizer
     hidden_dim = model.config.hidden_size
