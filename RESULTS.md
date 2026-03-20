@@ -223,8 +223,25 @@ Clean capacity curve. avg_em peaks at r=256, ppl minimizes at r=512. Both degrad
 - Curve matches Dambre capacity theory: performance improves with r until projection can't compress the state, then signal-to-noise ratio degrades
 - Original Track A choice of r=1000 was past the optimum
 
-### 3. Layer Count — 1 to 6 layers (~9h, 6 runs)
-Marginal return per additional sidecar layer. Current best is 5 layers [3,7,11,15,23]. Look for knee (phase transition) vs concave (diminishing returns).
+### 3. Layer Count — 1 to 6 layers — COMPLETE
+
+All runs at r=256 (new optimal from sweep #2).
+
+| Layers | Positions | ppl | Δppl | avg_em |
+|--------|-----------|-----|------|--------|
+| 1 | [11] | 6.88 | +0.9% | 0.334 |
+| 2 | [7, 19] | 6.96 | +2.1% | 0.346 |
+| 3 | [3, 11, 23] | 6.78 | -0.6% | 0.357 |
+| 4 | [3, 7, 15, 23] | 6.66 | -2.3% | 0.350 |
+| **5** | **[3, 7, 11, 15, 23]** | **6.75** | **-1.0%** | **0.368** |
+| 6 | [3, 7, 11, 15, 19, 23] | 6.78 | -0.6% | 0.364 |
+
+**Findings:**
+- avg_em peaks at 5 layers (0.368) — concave curve with clear optimum, not a knee
+- 6 layers shows diminishing returns (avg_em drops slightly, ppl same as 3 layers)
+- Layer 11 is critical: removing it (4-layer config) drops avg_em from 0.368 to 0.350 despite better ppl
+- 2-layer [7,19] performs worse than 1-layer [11] on ppl — position matters more than count at low counts
+- ppl improves monotonically from 3→4 layers but task performance doesn't follow — ppl and tasks optimize differently
 
 ### 4. Sequence Length — 512 to 4096 (~8h, 4 runs)
 Does the sidecar benefit increase with context? If yes → reservoir provides something attention fundamentally can't. If flat → reservoir is redundant with attention at these scales.
