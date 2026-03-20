@@ -301,21 +301,20 @@ Key task results (LLaMA):
 
 ### 7. Model Size Scaling — Qwen3.5-2B — COMPLETE (ran locally, fit on 24GB)
 
-| Model | Params | Vanilla ppl | Sidecar ppl | Δppl | Vanilla avg_em* | Sidecar avg_em |
-|-------|--------|------------|-------------|------|----------------|---------------|
-| Qwen3.5-0.8B | 0.8B | 6.82 | 6.77 | -0.7% | ~0.12 | 0.347 ± 0.019 |
-| LLaMA-3.2-1B | 1.2B | 5.82 | 5.76 | -1.0% | 0.209 | 0.244 |
-| **Qwen3.5-2B** | **2B** | **4.01** | **4.17** | **+4.0%** | **—** | **0.366** |
-
-*Qwen3.5-2B vanilla task eval not yet run
+| Model | Params | Vanilla ppl | Sidecar ppl | Δppl | Vanilla avg_em | Sidecar avg_em | Δavg_em |
+|-------|--------|------------|-------------|------|---------------|---------------|---------|
+| Qwen3.5-0.8B | 0.8B | 6.82 | 6.77 | -0.7% | ~0.12 | 0.347 ± 0.019 | +0.23 (~3x) |
+| LLaMA-3.2-1B | 1.2B | 5.82 | 5.76 | -1.0% | 0.209 | 0.244 | +0.035 (+17%) |
+| **Qwen3.5-2B** | **2B** | **4.01** | **4.17** | **+4.0%** | **0.332** | **0.366** | **+0.034 (+10%)** |
 
 **Findings:**
 - Sidecar works at 2B scale — avg_em=0.366 is the highest in the project
 - CompositionalGen: 0.26/0.16 (much better than 0.8B's ~0.06)
 - LengthExtrapolation 1x: 0.260 (0.8B got 0.10)
 - DyckLanguage: 0.040 (first non-zero ever)
-- **BUT ppl increases +4.0%** at 2B (vs -0.7% at 0.8B). Larger models are harder to augment without disrupting calibration
-- The task gains scale with model size but the ppl cost also scales — need to optimize gate/training for larger models
+- **ppl cost increases with model size:** -0.7% at 0.8B, -1.0% at 1B, +4.0% at 2B. Larger models are harder to augment without disrupting calibration
+- **Absolute task gain is roughly constant (~+0.03-0.04)** across 1B-2B, but relative gain shrinks as vanilla gets better (3x at 0.8B → +17% at 1B → +10% at 2B)
+- The sidecar adds a fixed quantum of sequential reasoning capability regardless of model size — the question is whether this fixed addition justifies the growing ppl cost at scale
 
 ### 8. Passkey Retrieval Distance Sweep — COMPLETE
 
