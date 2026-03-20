@@ -5,13 +5,13 @@ Full 23-benchmark eval only on winners.
 
 ## Current
 
-- [x] 4B baseline sidecar training (running, gate=0.1, 8 layers, r=256, seq=512)
+- [x] 4B baseline sidecar training (done, gate=0.1, 8 layers, r=256, seq=512, loss=2.06)
 
 ## Queue
 
 ### 4B Evals
-- [ ] 4B sidecar eval (full 23-benchmark)
-- [ ] 4B vanilla eval (--no-sidecar, full 23-benchmark)
+- [x] 4B sidecar eval: avg_em=0.557, ppl=2.32
+- [x] 4B vanilla eval: avg_em=0.553, ppl=2.28. **Sidecar is a no-op at 4B (+0.004 avg_em, +1.8% ppl)**
 
 ### 2B Gate Warmup Sweep (most likely to fix ppl regression)
 - [ ] 2B gate_target=0.01, r=256, 5 layers [3,7,11,15,23], seq=1024
@@ -24,16 +24,8 @@ Full 23-benchmark eval only on winners.
 - [ ] 2B r=512, gate=0.1, 5 layers, seq=1024
 - [ ] 2B interface_lr=5e-4, gate=0.1, r=256, 5 layers, seq=1024
 
-### 4B Gate Warmup Sweep
-- [ ] 4B gate_target=0.01, r=256, 8 layers [3,7,11,15,19,23,27,31], seq=512
-- [ ] 4B gate_target=0.03, r=256, 8 layers, seq=512
-- [ ] 4B gate_target=0.05, r=256, 8 layers, seq=512
-
-### 4B Other Sweeps
-- [ ] 4B 3 layers [3,15,27], gate=0.1, r=256, seq=512
-- [ ] 4B r=128, gate=0.1, 8 layers, seq=512
-- [ ] 4B r=512, gate=0.1, 8 layers, seq=512
-- [ ] 4B interface_lr=5e-4, gate=0.1, r=256, 8 layers, seq=512
+### 4B Sweeps — SKIPPED
+Sidecar is a no-op at 4B (+0.004 avg_em, +1.8% ppl). Sweeping hyperparameters won't help — the model is already too capable for r=256 ESN to add value. Would need fundamentally different approach (larger reservoir? different injection mechanism?) to matter at this scale.
 
 ### Winners
 - [ ] Full 23-benchmark eval on best 2B config
