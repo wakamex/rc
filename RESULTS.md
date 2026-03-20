@@ -261,7 +261,23 @@ All runs at r=256, 5 layers [3,7,11,15,23]. seq4096 OOM on 24GB GPU.
 - More likely: shorter sequences are more sample-efficient (same 5000 steps = more gradient updates per position), and 1024 is the sweet spot for this training budget
 - The sidecar benefit is roughly uniform across 512-2048, suggesting it augments attention at all scales rather than filling a specific length-dependent gap
 
-### 5. Model Size — optional, needs cloud
+### 5. Multi-Seed Variance — COMPLETE
+
+Best config (r=256, 5 layers, seq1024) at 3 seeds:
+
+| Seed | ppl | avg_em |
+|------|-----|--------|
+| 42 | 6.70 | 0.374 |
+| 43 | 6.80 | 0.336 |
+| 44 | 6.81 | 0.332 |
+| **Mean ± Std** | **6.77 ± 0.05** | **0.347 ± 0.019** |
+
+Seed 42 was an outlier — the true avg_em is ~0.347, not 0.374. High variance at n=50 eval samples. The ppl result is more stable (6.77 ± 0.05, consistently below vanilla 6.82).
+
+### 6. Second Base Model — LLaMA-3.2-1B — IN PROGRESS
+Training now. Pure softmax transformer (no DeltaNet). Tests architecture generality.
+
+### 7. Model Size — optional, needs cloud
 Even one data point at Qwen3.5-2B showing the sidecar helps would answer the "does this scale?" reviewer question.
 
 ## Known Limitations
