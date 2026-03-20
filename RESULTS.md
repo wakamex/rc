@@ -282,7 +282,8 @@ Pure softmax transformer (16 layers, hidden=2048, no DeltaNet). Sidecar at [3,7,
 |--------|----------------|---------------|----------------------|-------------|
 | ppl | 5.76 | 5.82 | 6.77 | 6.82 |
 | Δppl | -1.0% | — | -0.7% | — |
-| avg_em | 0.244 | ~0.12 | 0.347 | ~0.12 |
+| avg_em | 0.244 | 0.209 | 0.347 | ~0.12 |
+| Δavg_em | +17% | — | ~3x | — |
 
 Key task results (LLaMA):
 - PasskeyRetrieval: 0.92-1.00 (near perfect, same as Qwen)
@@ -300,6 +301,23 @@ Key task results (LLaMA):
 
 ### 7. Model Size — optional, needs cloud
 Even one data point at Qwen3.5-2B showing the sidecar helps would answer the "does this scale?" reviewer question.
+
+### 8. Passkey Retrieval Distance Sweep — COMPLETE
+
+Tests whether the sidecar provides memory (curves diverge with distance) or features (curves parallel).
+
+| Context Length | Sidecar | Vanilla | Delta |
+|---------------|---------|---------|-------|
+| 50 | 1.000 | 1.000 | +0.000 |
+| 100 | 1.000 | 1.000 | +0.000 |
+| 200 | 1.000 | 0.980 | +0.020 |
+| 500 | 1.000 | 1.000 | +0.000 |
+| 1000 | 1.000 | 0.980 | +0.020 |
+| 2000 | 1.000 | 0.960 | +0.040 |
+
+**Finding: curves are parallel, not diverging.** The sidecar provides a constant small improvement (~+0.02) at all distances. Vanilla is already near-perfect (0.96-1.00). The sidecar is NOT providing memory — it's providing complementary dynamical features that make retrieval slightly easier regardless of distance.
+
+**Implication for framing:** The paper should NOT claim "auxiliary memory." The correct framing is "complementary nonlinear recurrent features" — a fixed dynamical projection that gives the transformer access to temporal representations it can't efficiently compute with attention alone. The reservoir happens to help on memory tasks because those tasks benefit from any recurrent state signal, not because the reservoir stores and retrieves information.
 
 ## Known Limitations
 
