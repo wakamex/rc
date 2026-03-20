@@ -1,0 +1,923 @@
+{
+  "model_name": "qwen3.5-0.8b+track-a-readonly",
+  "checkpoint": "checkpoints/scaling/r4096/final",
+  "timestamp": 1773960821.5531225,
+  "config": {
+    "device": "cuda",
+    "dtype": "bf16",
+    "n_examples": 50,
+    "max_new_tokens": 64,
+    "reservoir_size": 4096,
+    "sidecar_enabled": true,
+    "lora_rank": 16
+  },
+  "perplexity": 6.877371282985025,
+  "vram": {
+    "allocated_mb": 1512.66162109375,
+    "peak_mb": 1660.353515625
+  },
+  "latency": {
+    "p50_s": 0.3898497656919062,
+    "p95_s": 2.1313432659953833
+  },
+  "eval_elapsed_seconds": 877.3960335361771,
+  "results": [
+    {
+      "task": "PasskeyRetrieval",
+      "metric": "exact_match",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "PasskeyRetrieval",
+      "metric": "accuracy",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "PasskeyRetrieval",
+      "metric": "f1",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "PasskeyRetrieval",
+      "metric": "exact_match",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "PasskeyRetrieval",
+      "metric": "accuracy",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "PasskeyRetrieval",
+      "metric": "f1",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "VariableTracking",
+      "metric": "exact_match",
+      "value": 0.7,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "VariableTracking",
+      "metric": "accuracy",
+      "value": 0.7,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "VariableTracking",
+      "metric": "f1",
+      "value": 0.7,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "VariableTracking",
+      "metric": "exact_match",
+      "value": 0.52,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "VariableTracking",
+      "metric": "accuracy",
+      "value": 0.52,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "VariableTracking",
+      "metric": "f1",
+      "value": 0.52,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AssociativeRecall",
+      "metric": "exact_match",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AssociativeRecall",
+      "metric": "accuracy",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AssociativeRecall",
+      "metric": "f1",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AssociativeRecall",
+      "metric": "exact_match",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AssociativeRecall",
+      "metric": "accuracy",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AssociativeRecall",
+      "metric": "f1",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "MultiDigitArithmetic",
+      "metric": "exact_match",
+      "value": 0.94,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "MultiDigitArithmetic",
+      "metric": "accuracy",
+      "value": 0.94,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "MultiDigitArithmetic",
+      "metric": "f1",
+      "value": 0.94,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "MultiDigitArithmetic",
+      "metric": "exact_match",
+      "value": 0.96,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "MultiDigitArithmetic",
+      "metric": "accuracy",
+      "value": 0.96,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "MultiDigitArithmetic",
+      "metric": "f1",
+      "value": 0.96,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "MultiDigitArithmetic",
+      "metric": "exact_match",
+      "value": 0.12,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "MultiDigitArithmetic",
+      "metric": "accuracy",
+      "value": 0.12,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "MultiDigitArithmetic",
+      "metric": "f1",
+      "value": 0.12,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "ModularArithmetic",
+      "metric": "exact_match",
+      "value": 0.1,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "ModularArithmetic",
+      "metric": "accuracy",
+      "value": 0.1,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "ModularArithmetic",
+      "metric": "f1",
+      "value": 0.1,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "DyckLanguage",
+      "metric": "exact_match",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "DyckLanguage",
+      "metric": "accuracy",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "DyckLanguage",
+      "metric": "f1",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "DyckLanguage",
+      "metric": "exact_match",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "DyckLanguage",
+      "metric": "accuracy",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "DyckLanguage",
+      "metric": "f1",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "ProgramTrace",
+      "metric": "exact_match",
+      "value": 0.18,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "ProgramTrace",
+      "metric": "accuracy",
+      "value": 0.18,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "ProgramTrace",
+      "metric": "f1",
+      "value": 0.228,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "ProgramTrace",
+      "metric": "exact_match",
+      "value": 0.22,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "ProgramTrace",
+      "metric": "accuracy",
+      "value": 0.22,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "ProgramTrace",
+      "metric": "f1",
+      "value": 0.245,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "CompositionalGeneralization",
+      "metric": "exact_match",
+      "value": 0.02,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "CompositionalGeneralization",
+      "metric": "accuracy",
+      "value": 0.02,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "CompositionalGeneralization",
+      "metric": "f1",
+      "value": 0.14055555555555554,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "CompositionalGeneralization",
+      "metric": "exact_match",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "CompositionalGeneralization",
+      "metric": "accuracy",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "CompositionalGeneralization",
+      "metric": "f1",
+      "value": 0.09333333333333334,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "LengthExtrapolation",
+      "metric": "exact_match",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "LengthExtrapolation",
+      "metric": "accuracy",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "LengthExtrapolation",
+      "metric": "f1",
+      "value": 0.09166666666666667,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "LengthExtrapolation",
+      "metric": "exact_match",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "LengthExtrapolation",
+      "metric": "accuracy",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "LengthExtrapolation",
+      "metric": "f1",
+      "value": 0.001818181818181818,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "LengthExtrapolation",
+      "metric": "exact_match",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "LengthExtrapolation",
+      "metric": "accuracy",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "LengthExtrapolation",
+      "metric": "f1",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "exact_match",
+      "value": 0.14,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "accuracy",
+      "value": 0.14,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "f1",
+      "value": 0.31166666666666665,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "exact_match",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "accuracy",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "f1",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "exact_match",
+      "value": 0.14,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "accuracy",
+      "value": 0.14,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "f1",
+      "value": 0.14,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "exact_match",
+      "value": 0.12,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "accuracy",
+      "value": 0.12,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "f1",
+      "value": 0.12,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-a-readonly",
+        "git_hash": "5feed4f",
+        "timestamp": 1773959944.158763,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    }
+  ]
+}

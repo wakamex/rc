@@ -1,0 +1,146 @@
+[
+  {
+    "layer_idx": 0,
+    "reservoir_size": 256,
+    "ppl": 6.68716990135685,
+    "hooks": 1000,
+    "status": "ok",
+    "train_time": 823.174870967865
+  },
+  {
+    "layer_idx": 1,
+    "reservoir_size": 256,
+    "ppl": 6.639196563066494,
+    "hooks": 1000,
+    "status": "ok",
+    "train_time": 815.9194195270538
+  },
+  {
+    "layer_idx": 2,
+    "reservoir_size": 256,
+    "ppl": 6.599371410957674,
+    "hooks": 1000,
+    "status": "ok",
+    "train_time": 764.4081349372864
+  },
+  {
+    "layer_idx": 3,
+    "reservoir_size": 256,
+    "ppl": 6.67500131918778,
+    "hooks": 1000,
+    "status": "ok",
+    "train_time": 768.6755611896515
+  },
+  {
+    "layer_idx": 4,
+    "reservoir_size": 256,
+    "ppl": 6.653009393069215,
+    "hooks": 1000,
+    "status": "ok",
+    "train_time": 780.2711732387543
+  },
+  {
+    "layer_idx": 5,
+    "reservoir_size": 256,
+    "ppl": 6.65101520518983,
+    "hooks": 1000,
+    "status": "ok",
+    "train_time": 785.9286797046661
+  },
+  {
+    "layer_idx": 6,
+    "reservoir_size": 256,
+    "ppl": 6.653288576274097,
+    "hooks": 1000,
+    "status": "ok",
+    "train_time": 765.7662782669067
+  },
+  {
+    "layer_idx": 7,
+    "reservoir_size": 256,
+    "ppl": 6.663368663906727,
+    "hooks": 1000,
+    "status": "ok",
+    "train_time": 760.4192340373993
+  },
+  {
+    "layer_idx": 8,
+    "reservoir_size": 256,
+    "ppl": 6.712857230860305,
+    "hooks": 1000,
+    "status": "ok",
+    "train_time": 760.7957482337952
+  },
+  {
+    "layer_idx": 9,
+    "reservoir_size": 256,
+    "ppl": 6.6877466177906815,
+    "hooks": 1000,
+    "status": "ok",
+    "train_time": 783.8432297706604
+  },
+  {
+    "layer_idx": 10,
+    "reservoir_size": 256,
+    "ppl": 6.591248483296102,
+    "hooks": 1000,
+    "status": "ok",
+    "train_time": 765.1373398303986
+  },
+  {
+    "layer_idx": 11,
+    "reservoir_size": 256,
+    "ppl": 6.679433143443107,
+    "hooks": 1000,
+    "status": "ok",
+    "train_time": 766.7596311569214
+  },
+  {
+    "layer_idx": 12,
+    "reservoir_size": 256,
+    "ppl": 6.71521319290041,
+    "hooks": 1000,
+    "status": "ok",
+    "train_time": 764.3668603897095
+  },
+  {
+    "layer_idx": 13,
+    "reservoir_size": 256,
+    "ppl": Infinity,
+    "status": "crash:-6",
+    "train_time": 770.2779915332794,
+    "error": "/1.1 307 Temporary Redirect\"\n2026-03-18 22:16:52,615 INFO HTTP Request: HEAD https://huggingface.co/api/resolve-cache/models/Qwen/Qwen3.5-0.8B-Base/a9a407bcae463285164cc9133995c515379cebe5/config.json \"HTTP/1.1 200 OK\"\n2026-03-18 22:16:52,622 INFO Results written to results/track_b/deltanet.json\n2026-03-18 22:16:52,622 INFO Done. final_loss=3.3052  final_ppl=27.25  steps=1000\nFatal Python error: tstate_delete_common: NULL interpreter\nPython runtime state: finalizing (tstate=0x00007f9a543c64e8)\n\n"
+  },
+  {
+    "layer_idx": 14,
+    "reservoir_size": 256,
+    "ppl": 6.677536049783963,
+    "hooks": 1000,
+    "status": "ok",
+    "train_time": 777.3481342792511
+  },
+  {
+    "layer_idx": 15,
+    "reservoir_size": 256,
+    "ppl": 6.619423532178693,
+    "hooks": 1000,
+    "status": "ok",
+    "train_time": 772.4342741966248
+  },
+  {
+    "layer_idx": 16,
+    "reservoir_size": 256,
+    "ppl": 6.650635071129595,
+    "hooks": 1000,
+    "status": "ok",
+    "train_time": 772.561957359314
+  },
+  {
+    "layer_idx": 17,
+    "reservoir_size": 256,
+    "ppl": 6.678498111489871,
+    "hooks": 1000,
+    "status": "ok",
+    "train_time": 778.6294713020325
+  }
+]

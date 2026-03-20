@@ -1,0 +1,923 @@
+{
+  "model_name": "qwen3.5-0.8b+track-b-deltanet",
+  "checkpoint": "checkpoints/track_b/deltanet/final",
+  "timestamp": 1773554332.422606,
+  "config": {
+    "device": "cuda",
+    "dtype": "bf16",
+    "n_examples": 50,
+    "max_new_tokens": 64,
+    "reservoir_size": 1000,
+    "sidecar_enabled": true,
+    "lora_rank": 16
+  },
+  "perplexity": 13.76443228710006,
+  "vram": {
+    "allocated_mb": 1474.458984375,
+    "peak_mb": 1622.59619140625
+  },
+  "latency": {
+    "p50_s": 2.287110183853656,
+    "p95_s": 4.15439796121791
+  },
+  "eval_elapsed_seconds": 3235.461345956195,
+  "results": [
+    {
+      "task": "PasskeyRetrieval",
+      "metric": "exact_match",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "PasskeyRetrieval",
+      "metric": "accuracy",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "PasskeyRetrieval",
+      "metric": "f1",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "PasskeyRetrieval",
+      "metric": "exact_match",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "PasskeyRetrieval",
+      "metric": "accuracy",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "PasskeyRetrieval",
+      "metric": "f1",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "VariableTracking",
+      "metric": "exact_match",
+      "value": 0.44,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "VariableTracking",
+      "metric": "accuracy",
+      "value": 0.44,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "VariableTracking",
+      "metric": "f1",
+      "value": 0.44,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "VariableTracking",
+      "metric": "exact_match",
+      "value": 0.34,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "VariableTracking",
+      "metric": "accuracy",
+      "value": 0.34,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "VariableTracking",
+      "metric": "f1",
+      "value": 0.34,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AssociativeRecall",
+      "metric": "exact_match",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AssociativeRecall",
+      "metric": "accuracy",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AssociativeRecall",
+      "metric": "f1",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AssociativeRecall",
+      "metric": "exact_match",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AssociativeRecall",
+      "metric": "accuracy",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AssociativeRecall",
+      "metric": "f1",
+      "value": 1.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "MultiDigitArithmetic",
+      "metric": "exact_match",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "MultiDigitArithmetic",
+      "metric": "accuracy",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "MultiDigitArithmetic",
+      "metric": "f1",
+      "value": 0.03333333333333334,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "MultiDigitArithmetic",
+      "metric": "exact_match",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "MultiDigitArithmetic",
+      "metric": "accuracy",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "MultiDigitArithmetic",
+      "metric": "f1",
+      "value": 0.07333333333333333,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "MultiDigitArithmetic",
+      "metric": "exact_match",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "MultiDigitArithmetic",
+      "metric": "accuracy",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "MultiDigitArithmetic",
+      "metric": "f1",
+      "value": 0.013333333333333334,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "ModularArithmetic",
+      "metric": "exact_match",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "ModularArithmetic",
+      "metric": "accuracy",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "ModularArithmetic",
+      "metric": "f1",
+      "value": 0.02,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "DyckLanguage",
+      "metric": "exact_match",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "DyckLanguage",
+      "metric": "accuracy",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "DyckLanguage",
+      "metric": "f1",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "DyckLanguage",
+      "metric": "exact_match",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "DyckLanguage",
+      "metric": "accuracy",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "DyckLanguage",
+      "metric": "f1",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "ProgramTrace",
+      "metric": "exact_match",
+      "value": 0.14,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "ProgramTrace",
+      "metric": "accuracy",
+      "value": 0.14,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "ProgramTrace",
+      "metric": "f1",
+      "value": 0.21666666666666667,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "ProgramTrace",
+      "metric": "exact_match",
+      "value": 0.12,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "ProgramTrace",
+      "metric": "accuracy",
+      "value": 0.12,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "ProgramTrace",
+      "metric": "f1",
+      "value": 0.16666666666666669,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "CompositionalGeneralization",
+      "metric": "exact_match",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "CompositionalGeneralization",
+      "metric": "accuracy",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "CompositionalGeneralization",
+      "metric": "f1",
+      "value": 0.023714285714285716,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "CompositionalGeneralization",
+      "metric": "exact_match",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "CompositionalGeneralization",
+      "metric": "accuracy",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "CompositionalGeneralization",
+      "metric": "f1",
+      "value": 0.006666666666666667,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "LengthExtrapolation",
+      "metric": "exact_match",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "LengthExtrapolation",
+      "metric": "accuracy",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "LengthExtrapolation",
+      "metric": "f1",
+      "value": 0.03333333333333334,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "LengthExtrapolation",
+      "metric": "exact_match",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "LengthExtrapolation",
+      "metric": "accuracy",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "LengthExtrapolation",
+      "metric": "f1",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "LengthExtrapolation",
+      "metric": "exact_match",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "LengthExtrapolation",
+      "metric": "accuracy",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "LengthExtrapolation",
+      "metric": "f1",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "exact_match",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "accuracy",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "f1",
+      "value": 0.42184895139638656,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "exact_match",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "accuracy",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "f1",
+      "value": 0.5275554808388406,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "exact_match",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "accuracy",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "f1",
+      "value": 0.014545454545454545,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "exact_match",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "accuracy",
+      "value": 0.0,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    },
+    {
+      "task": "AlgorithmicTransfer",
+      "metric": "f1",
+      "value": 0.002352941176470588,
+      "config": {
+        "model_name": "qwen3.5-0.8b+track-b-deltanet",
+        "git_hash": "f472746",
+        "timestamp": 1773551096.95116,
+        "num_few_shot": 0,
+        "decode_mode": "greedy",
+        "batch_size": 1
+      }
+    }
+  ]
+}
