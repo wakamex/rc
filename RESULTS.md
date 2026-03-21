@@ -312,9 +312,20 @@ Key task results (LLaMA):
 - CompositionalGen: 0.26/0.16 (much better than 0.8B's ~0.06)
 - LengthExtrapolation 1x: 0.260 (0.8B got 0.10)
 - DyckLanguage: 0.040 (first non-zero ever)
-- **ppl cost increases with model size:** -0.7% at 0.8B, -1.0% at 1B, +4.0% at 2B. Larger models are harder to augment without disrupting calibration
-- **Absolute task gain is roughly constant (~+0.03-0.04)** across 1B-2B, but relative gain shrinks as vanilla gets better (3x at 0.8B → +17% at 1B → +10% at 2B)
-- The sidecar adds a fixed quantum of sequential reasoning capability regardless of model size — the question is whether this fixed addition justifies the growing ppl cost at scale
+- **Default hyperparams (gate=0.1, r=256) cause ppl regression at 2B (+4.0%) and 4B (+1.8%)**
+- **Tuned hyperparams fix 2B completely:** r=128, gate=0.03 → ppl=4.02 (+0.2%), avg_em=0.387 (+17%)
+- **4B is a no-op** regardless of tuning — model is too capable for r=256 ESN to add value
+- Optimal reservoir size scales inversely: r=256 at 0.8B, r=128 at 2B — smaller models need more reservoir capacity relative to hidden dim
+- Gate warmup target must decrease with model size: 0.1 at 0.8B, 0.03 at 2B — larger models need gentler injection
+
+**Updated model size table (with tuned 2B):**
+
+| Model | Vanilla ppl | Sidecar ppl | Δppl | Vanilla avg_em | Sidecar avg_em | Δavg_em |
+|-------|------------|-------------|------|---------------|---------------|---------|
+| Qwen3.5-0.8B | 6.82 | 6.77 | -0.7% | ~0.12 | 0.347 ± 0.019 | +0.23 (~3x) |
+| LLaMA-3.2-1B | 5.82 | 5.76 | -1.0% | 0.209 | 0.244 | +0.035 (+17%) |
+| Qwen3.5-2B (tuned) | 4.01 | 4.02 | +0.2% | 0.332 | 0.387 | +0.055 (+17%) |
+| Qwen3.5-4B | 2.28 | 2.32 | +1.8% | 0.553 | 0.557 | +0.004 (+0.7%) |
 
 ### 8. Passkey Retrieval Distance Sweep — COMPLETE
 
